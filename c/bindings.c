@@ -104,7 +104,7 @@ lean_obj_res l_extism_plugin_new(b_lean_obj_arg data, b_lean_obj_arg functions,
 
   char *err = NULL;
   ExtismPlugin *plugin = extism_plugin_new(dataBytes, dataLen, functionsPtr,
-                                           nFunctions, wasi != 0, &err);
+                                           nFunctions, wasi == 1, &err);
   if (plugin == NULL) {
     const char *err_s =
         err == NULL ? "Unknown error occured in call to Extism plugin" : err;
@@ -150,7 +150,10 @@ static void generic_function_callback(ExtismCurrentPlugin *plugin,
   lean_obj_res p =
       current_plugin_box(plugin, params, nparams, results, nresults);
   lean_obj_res r = lean_apply_2(f, p, lean_box(0));
+  memcpy(results, current_plugin_unbox(p)->results,
+         nresults * sizeof(ExtismVal));
   lean_free_object(p);
+  lean_free_object(r);
 }
 
 lean_obj_res l_extism_function_new(b_lean_obj_arg funcNamespace,
@@ -182,14 +185,17 @@ lean_obj_res l_extism_function_new(b_lean_obj_arg funcNamespace,
   return lean_io_result_mk_ok(function_box(func));
 }
 
-lean_obj_res l_extism_current_get_param_i64(b_lean_obj_arg current, size_t i) {
+lean_obj_res l_extism_current_get_param_i64(b_lean_obj_arg current,
+                                            b_lean_obj_arg i) {
   Current *c = current_plugin_unbox(current);
-  return lean_io_result_mk_ok(lean_box(c->params[i].v.i64));
+  return lean_io_result_mk_ok(lean_box(c->params[lean_unbox(i)].v.i64));
 }
 
-lean_obj_res l_extism_current_set_result_i64(b_lean_obj_arg current, size_t i,
-                                             int64_t x) {
+lean_obj_res l_extism_current_set_result_i64(b_lean_obj_arg current,
+                                             b_lean_obj_arg i,
+                                             b_lean_obj_arg x) {
   Current *c = current_plugin_unbox(current);
-  c->results[i].v.i64 = x;
+  c->results[lean_unbox(i)].t = I64;
+  c->results[lean_unbox(i)].v.i64 = lean_unbox(x);
   return lean_io_result_mk_ok(lean_box(0));
 }
