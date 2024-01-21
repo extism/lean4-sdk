@@ -94,5 +94,6 @@ lean_obj_res l_extism_plugin_call(b_lean_obj_arg pluginArg,
   lean_obj_res x = lean_mk_empty_byte_array(lean_box(length));
   void *dest = lean_sarray_cptr(x);
   memcpy(dest, output, length);
+  lean_sarray_set_size(x, length);
   return lean_io_result_mk_ok(x);
 }
