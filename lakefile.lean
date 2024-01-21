@@ -3,7 +3,7 @@ import Lake
 open Lake DSL
 
 package extism {
-  precompileModules := true
+  -- precompileModules := true
   moreLinkArgs := #["-lextism"]
 }
 
