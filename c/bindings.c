@@ -4,6 +4,7 @@
 #include <string.h>
 
 static lean_external_class *g_plugin_class = NULL;
+static lean_external_class *g_current_plugin_class = NULL;
 static lean_external_class *g_function_class = NULL;
 
 // Plugin class
@@ -19,6 +20,22 @@ ExtismPlugin *plugin_unbox(lean_object *o) {
 static void plugin_finalizer(void *ptr) { extism_plugin_free(ptr); }
 
 inline static void plugin_foreach(void *mod, b_lean_obj_arg fn) {
+  // used for `for in`
+}
+
+// CurrentPlugin class
+
+lean_object *current_plugin_box(ExtismPlugin *o) {
+  return lean_alloc_external(g_current_plugin_class, o);
+}
+
+ExtismCurrentPlugin *current_plugin_unbox(lean_object *o) {
+  return (ExtismCurrentPlugin *)(lean_get_external_data(o));
+}
+
+static void current_plugin_finalizer(void *ptr) {}
+
+inline static void current_plugin_foreach(void *mod, b_lean_obj_arg fn) {
   // used for `for in`
 }
 
@@ -43,6 +60,8 @@ inline static void function_foreach(void *mod, b_lean_obj_arg fn) {
 lean_obj_res l_extism_initialize() {
   g_plugin_class =
       lean_register_external_class(plugin_finalizer, plugin_foreach);
+  g_current_plugin_class = lean_register_external_class(
+      current_plugin_finalizer, current_plugin_foreach);
   g_function_class =
       lean_register_external_class(function_finalizer, function_foreach);
   return lean_io_result_mk_ok(lean_box(0));
@@ -96,4 +115,20 @@ lean_obj_res l_extism_plugin_call(b_lean_obj_arg pluginArg,
   memcpy(dest, output, length);
   lean_sarray_set_size(x, length);
   return lean_io_result_mk_ok(x);
+}
+
+static void generic_function_callback(ExtismCurrentPlugin *plugin,
+                                      const ExtismVal *params, uint64_t nparams,
+                                      ExtismVal *results, uint64_t nresults,
+                                      void *userdata) {}
+
+lean_obj_res l_extism_function_new(b_lean_obj_arg name, b_lean_obj_arg params,
+                                   b_lean_obj_arg results, b_lean_obj_arg f) {
+  lean_inc_ref(f);
+  ExtismFunction *func = extism_function_new(
+      "", NULL, 0, NULL, 0, generic_function_callback, f, (void *)lean_dec_ref);
+  if (func == NULL) {
+    return lean_mk_io_user_error(lean_mk_string("Unable to create function"));
+  }
+  return lean_box(0);
 }
