@@ -1,6 +1,7 @@
 #include <extism.h>
 #include <lean/lean.h>
 #include <stdio.h>
+#include <string.h>
 
 static lean_external_class *g_plugin_class = NULL;
 static lean_external_class *g_function_class = NULL;
@@ -70,4 +71,28 @@ lean_obj_res l_extism_plugin_new(b_lean_obj_arg data, uint8_t wasi) {
   }
 
   return lean_io_result_mk_ok(plugin_box(plugin));
+}
+
+lean_obj_res l_extism_plugin_call(b_lean_obj_arg pluginArg,
+                                  b_lean_obj_arg funcName,
+                                  b_lean_obj_arg input) {
+  ExtismPlugin *plugin = plugin_unbox(pluginArg);
+  const char *name = lean_string_cstr(funcName);
+  size_t dataLen = lean_sarray_size(input);
+  void *dataBytes = lean_sarray_cptr(input);
+  int32_t rc = extism_plugin_call(plugin, name, dataBytes, dataLen);
+  if (rc != 0) {
+    const char *err = extism_plugin_error(plugin);
+    return lean_mk_io_user_error(lean_mk_string(
+        err == NULL ? "Unknown error occured in call to Extism plugin" : err));
+  }
+
+  size_t length = extism_plugin_output_length(plugin);
+  const uint8_t *output = extism_plugin_output_data(plugin);
+
+  // TODO:
+  lean_obj_res x = lean_mk_empty_byte_array(lean_box(length));
+  void *dest = lean_sarray_cptr(x);
+  memcpy(dest, output, length);
+  return lean_io_result_mk_ok(x);
 }

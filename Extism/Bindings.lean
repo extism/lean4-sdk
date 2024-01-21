@@ -20,3 +20,5 @@ def newPluginFromFile (path : System.FilePath) (wasi : Bool) : IO PluginRef := d
   let data := <- IO.FS.readBinFile path
   newPluginRef data wasi
 
+@[extern "l_extism_plugin_call"]
+opaque pluginRefCall : PluginRef -> String -> ByteArray -> IO ByteArray
