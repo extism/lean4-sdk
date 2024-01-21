@@ -15,4 +15,8 @@ instance : Nonempty Function := FunctionPointed.property
 
 
 @[extern "l_extism_plugin_new"]
-opaque new_plugin : ByteArray -> Bool -> IO Plugin
+opaque newPlugin : ByteArray -> Bool -> IO Plugin
+
+def newPluginFromFile (path : System.FilePath) (wasi : Bool) : IO Plugin := do
+  let data := <- IO.FS.readBinFile path
+  newPlugin data wasi
