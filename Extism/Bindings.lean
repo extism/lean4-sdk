@@ -6,17 +6,17 @@ opaque version : IO String
 builtin_initialize extismInit
 
 opaque PluginPointed : NonemptyType
-def Plugin : Type := PluginPointed.type
-instance : Nonempty Plugin := PluginPointed.property
+def PluginRef : Type := PluginPointed.type
+instance : Nonempty PluginRef := PluginPointed.property
 
 opaque FunctionPointed : NonemptyType
 def Function : Type := FunctionPointed.type
 instance : Nonempty Function := FunctionPointed.property
 
-
 @[extern "l_extism_plugin_new"]
-opaque newPlugin : ByteArray -> Bool -> IO Plugin
+opaque newPluginRef : ByteArray -> Bool -> IO PluginRef
 
-def newPluginFromFile (path : System.FilePath) (wasi : Bool) : IO Plugin := do
+def newPluginFromFile (path : System.FilePath) (wasi : Bool) : IO PluginRef := do
   let data := <- IO.FS.readBinFile path
-  newPlugin data wasi
+  newPluginRef data wasi
+
