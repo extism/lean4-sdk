@@ -12,7 +12,7 @@ lean_lib Extism
 
 @[default_target]
 lean_exe test {
-  root := `Main
+  root := `Test
 }
 
 target bindings.o pkg : FilePath := do
