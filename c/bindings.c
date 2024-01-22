@@ -162,7 +162,6 @@ lean_obj_res l_extism_function_new(b_lean_obj_arg funcNamespace,
                                    b_lean_obj_arg results, b_lean_obj_arg f) {
   const char *name = lean_string_cstr(funcName);
   const char *ns = lean_string_cstr(funcNamespace);
-
   size_t paramsLen = lean_array_size(params);
   size_t resultsLen = lean_array_size(results);
   ExtismValType paramVals[paramsLen];
