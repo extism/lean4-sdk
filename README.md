@@ -60,3 +60,6 @@ def main : IO Unit := do
   // => {"count":3,"total":3,"vowels":"aeiouAEIOU"}
 ```
 
+Note: `call` accepts any type that implements `Extism.ToBytes` as input, and returns any type that implements 
+`Extism.FromBytes`, these are implemented for `ByteArray`, `String` and `Lean.Json a`
+
