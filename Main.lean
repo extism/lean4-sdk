@@ -9,12 +9,21 @@ def helloWorld (curr: Current) : IO Unit := do
   IO.println "Hello world!!!"
   IO.println "Hello world!!!"
 
-def main : IO Unit := do
-  let m := Manifest.new #[Wasm.file "code-functions.wasm"]
-  let s := m.json
-  IO.println s!"{s}"
+def hostFunction: IO Unit := do
+  let m := Manifest.new #[Wasm.file "wasm/code-functions.wasm"] |> Manifest.withConfig "vowels" "aeiouyAEIOUY"
   let f := <- Function.new "hello_world" #[ValType.i64] #[ValType.i64] helloWorld
   let plugin := <- Plugin.new m #[f] True
   let input := String.toUTF8 "this is a test"
   let res := <- String.fromUTF8Unchecked <$> plugin.call "count_vowels" input
   IO.println s!"{res}"
+
+def fromUrl : IO Unit := do
+  let url := "https://github.com/extism/plugins/releases/latest/download/count_vowels.wasm"
+  let m := Manifest.new #[Wasm.url url]
+  let plugin := <- Plugin.new m #[] True
+  let res: String := <- Plugin.call plugin "count_vowels" "Hello, world!"
+  IO.println s!"{res}"
+
+def main : IO Unit := do
+  fromUrl
+  hostFunction

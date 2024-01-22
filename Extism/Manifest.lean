@@ -43,7 +43,10 @@ instance : Lean.ToJson WasmUrl where
     let m := [
       ("url", Lean.ToJson.toJson x.url)
     ]
-    let m := addIfSome m "headers" x.headers 
+    let h := match x.headers with
+      | Option.some x => List.map (fun (k, v) => (k, Lean.toJson v)) x |> Lean.Json.mkObj |> Option.some
+      | Option.none => Option.none
+    let m := addIfSome m "headers" h
     let m := addIfSome m "method" x.method
     let m := addIfSome m "name" x.name
     let m := addIfSome m "hash" x.hash
@@ -78,6 +81,7 @@ structure Manifest: Type where
   allowedHosts: Option (Array String)
   allowedPaths: Option (List (String × String))
   memory: Option Memory
+  config: Option (List (String × String))
 deriving Lean.FromJson, Inhabited, Repr
 
 instance : Lean.ToJson Manifest where
@@ -85,17 +89,30 @@ instance : Lean.ToJson Manifest where
     let m := [
       ("wasm", Lean.ToJson.toJson x.wasm)
     ]
+    let config := match x.config with
+      | Option.some x => List.map (fun (k, v) => (k, Lean.toJson v)) x |> Lean.Json.mkObj |> Option.some
+      | Option.none => Option.none
+    let paths := match x.allowedPaths with
+      | Option.some x => List.map (fun (k, v) => (k, Lean.toJson v)) x |> Lean.Json.mkObj |> Option.some
+      | Option.none => Option.none
     let m := addIfSome m "memory" x.memory
     let m := addIfSome m "allowed_hosts" x.allowedHosts
-    let m := addIfSome m "allowed_paths" x.allowedPaths
+    let m := addIfSome m "allowed_paths" paths
+    let m := addIfSome m "config" config
     Lean.Json.mkObj m
 
 
 def Manifest.new (wasm: Array Wasm) : Manifest :=
-  Manifest.mk wasm none none none
+  Manifest.mk wasm none none none none
 
-def Manifest.withMemoryMax (m: Manifest) (max: Int) : Manifest :=
+def Manifest.withMemoryMax (max: Int) (m: Manifest) : Manifest :=
   {m with memory := some (Memory.mk max)}
+
+def Manifest.withConfig (k: String) (v: String) (m: Manifest) :=
+  let c := match m.config with
+    | Option.none => []
+    | Option.some x => x
+  {m with config := (k, v) :: c}
 
 def Manifest.json (m: Manifest) : String :=
   let x := Lean.ToJson.toJson m

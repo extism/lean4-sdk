@@ -1,3 +1,8 @@
+import Lean.Data.Json
+import Lean.Data.Json.Basic
+import Lean.Data.Json.Parser
+import Lean.Data.Json.Printer
+
 @[extern "l_extism_version"]
 opaque version : IO String
 
@@ -50,6 +55,32 @@ private opaque functionNew : String -> String -> Array UInt8 -> Array UInt8 -> (
 class PluginInput (a: Type) where
   toPluginInput: a -> ByteArray
 
+class ToBytes (a: Type) where
+  toBytes: a -> ByteArray
+
+instance : ToBytes ByteArray where
+  toBytes x := x
+
+instance : ToBytes String where
+  toBytes := String.toUTF8
+
+instance [Lean.ToJson a] : ToBytes a where
+  toBytes x := (Lean.Json.compress (Lean.ToJson.toJson x)).toUTF8
+
+class FromBytes (a: Type) where
+  fromBytes?: ByteArray -> Except String a
+
+instance : FromBytes ByteArray where
+  fromBytes? x := Except.ok x
+
+instance : FromBytes String where
+  fromBytes? x := Except.ok (String.fromUTF8Unchecked x)
+
+instance [Lean.FromJson a] : FromBytes a where
+  fromBytes? x := do
+    let j := <- Lean.Json.parse (String.fromUTF8Unchecked x)
+    Lean.FromJson.fromJson? j
+
 instance : PluginInput ByteArray where
   toPluginInput x := x
 
@@ -68,8 +99,6 @@ structure Plugin where
 
 def Plugin.new [PluginInput a] (data: a) (functions: Array Function) (wasi : Bool) : IO Plugin := do
   let input := PluginInput.toPluginInput data
-  let s := String.fromUTF8Unchecked input
-  IO.println s!"Input {s}"
   let x := <- newPluginRef input functions wasi
   return (Plugin.mk x #[])
 
@@ -77,8 +106,9 @@ def Plugin.fromFile (path: System.FilePath) (functions: Array Function) (wasi : 
   let x := <- newPluginFromFile path functions wasi
   return (Plugin.mk x #[])
 
-def Plugin.call (plugin: Plugin) (funcName: String) (data: ByteArray) : IO ByteArray :=
-  pluginRefCall plugin.inner funcName data
+def Plugin.call [ToBytes a] [FromBytes b] (plugin: Plugin) (funcName: String) (data: a) : IO b := do
+  let res := <- pluginRefCall plugin.inner funcName (ToBytes.toBytes data)
+  IO.ofExcept (FromBytes.fromBytes? res)
 
 def Plugin.pipe (plugin: Plugin) (names: List String) (data: ByteArray) : IO ByteArray :=
   List.foldlM (fun acc x =>
