@@ -2,6 +2,8 @@
 
 This repo contains the [Lean 4](https://github.com/leanprover/lean4) package for integrating with [Extism](https://github.com/extism/extism)
 
+Note: These bindings are under active development and the public API is unstable. 
+
 ## Building
 
 The Extism shared object is required for these bindings to work, see our [https://extism.org/docs/install/](installation instructions).
