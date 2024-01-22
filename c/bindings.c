@@ -198,3 +198,47 @@ lean_obj_res l_extism_current_set_result_i64(b_lean_obj_arg current,
   c->results[lean_unbox(i)].v.i64 = lean_unbox(x);
   return lean_io_result_mk_ok(lean_box(0));
 }
+
+lean_obj_res l_extism_current_get_param_i32(b_lean_obj_arg current,
+                                            b_lean_obj_arg i) {
+  Current *c = current_plugin_unbox(current);
+  return lean_io_result_mk_ok(lean_box(c->params[lean_unbox(i)].v.i32));
+}
+
+lean_obj_res l_extism_current_set_result_i32(b_lean_obj_arg current,
+                                             b_lean_obj_arg i,
+                                             b_lean_obj_arg x) {
+  Current *c = current_plugin_unbox(current);
+  c->results[lean_unbox(i)].t = I32;
+  c->results[lean_unbox(i)].v.i32 = lean_unbox(x);
+  return lean_io_result_mk_ok(lean_box(0));
+}
+
+lean_obj_res l_extism_current_get_param_f32(b_lean_obj_arg current,
+                                            b_lean_obj_arg i) {
+  Current *c = current_plugin_unbox(current);
+  return lean_io_result_mk_ok(lean_box_float(c->params[lean_unbox(i)].v.f32));
+}
+
+lean_obj_res l_extism_current_set_result_f32(b_lean_obj_arg current,
+                                             b_lean_obj_arg i,
+                                             b_lean_obj_arg x) {
+  Current *c = current_plugin_unbox(current);
+  c->results[lean_unbox(i)].t = F32;
+  c->results[lean_unbox(i)].v.f32 = lean_unbox_float(x);
+  return lean_io_result_mk_ok(lean_box(0));
+}
+lean_obj_res l_extism_current_get_param_f64(b_lean_obj_arg current,
+                                            b_lean_obj_arg i) {
+  Current *c = current_plugin_unbox(current);
+  return lean_io_result_mk_ok(lean_box_float(c->params[lean_unbox(i)].v.f64));
+}
+
+lean_obj_res l_extism_current_set_result_f64(b_lean_obj_arg current,
+                                             b_lean_obj_arg i,
+                                             b_lean_obj_arg x) {
+  Current *c = current_plugin_unbox(current);
+  c->results[lean_unbox(i)].t = F64;
+  c->results[lean_unbox(i)].v.f32 = lean_unbox_float(x);
+  return lean_io_result_mk_ok(lean_box(0));
+}

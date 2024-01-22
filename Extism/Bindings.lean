@@ -57,11 +57,11 @@ instance : PluginInput String where
   toPluginInput := String.toUTF8
 
 def Function.newInNamespace (ns : String) (name: String) (params: Array ValType) (results: Array ValType) (f: Current -> IO Unit) : IO Function :=
-  functionNew ns name (Array.map ValType.toInt params) (Array.map ValType.toInt results) f 
+  functionNew ns name (Array.map ValType.toInt params) (Array.map ValType.toInt results) f
 
 def Function.new (name: String) (params: Array ValType) (results: Array ValType) (f: Current -> IO Unit) : IO Function :=
   Function.newInNamespace "extism:host/user" name params results f
-  
+
 structure Plugin where
   inner: PluginRef
   functions: Array Function
@@ -72,7 +72,7 @@ def Plugin.new [PluginInput a] (data: a) (functions: Array Function) (wasi : Boo
   IO.println s!"Input {s}"
   let x := <- newPluginRef input functions wasi
   return (Plugin.mk x #[])
-  
+
 def Plugin.fromFile (path: System.FilePath) (functions: Array Function) (wasi : Bool) : IO Plugin := do
   let x := <- newPluginFromFile path functions wasi
   return (Plugin.mk x #[])
@@ -83,7 +83,7 @@ def Plugin.call (plugin: Plugin) (funcName: String) (data: ByteArray) : IO ByteA
 def Plugin.pipe (plugin: Plugin) (names: List String) (data: ByteArray) : IO ByteArray :=
   List.foldlM (fun acc x =>
     Plugin.call plugin x acc) data names
-  
+
 @[extern "l_extism_current_set_result_i64"]
 private opaque setFunctionResultI64 : Current -> Int64 -> Int64 -> IO Unit
 
@@ -95,3 +95,40 @@ private opaque getFunctionParamI64 : Current -> Int64 -> IO Int64
 
 partial def Current.getParamI64 (c: Current) (i: Int64) : IO Int64 :=
   getFunctionParamI64 c i
+
+@[extern "l_extism_current_set_result_i32"]
+private opaque setFunctionResultI32 : Current -> Int64 -> Int32 -> IO Unit
+
+partial def Current.setResultI32 (c: Current) (i: Int32) (x: Int32) : IO Unit :=
+  setFunctionResultI32 c i x
+
+@[extern "l_extism_current_get_param_i32"]
+private opaque getFunctionParamI32 : Current -> Int64 -> IO Int32
+
+partial def Current.getParamI32 (c: Current) (i: Int64) : IO Int32 :=
+  getFunctionParamI32 c i
+
+
+@[extern "l_extism_current_set_result_f64"]
+private opaque setFunctionResultF64 : Current -> Int64 -> Float -> IO Unit
+
+partial def Current.setResultF64 (c: Current) (i: Int64) (x: Float) : IO Unit :=
+  setFunctionResultF64 c i x
+
+@[extern "l_extism_current_get_param_f64"]
+private opaque getFunctionParamF64 : Current -> Int64 -> IO Float
+
+partial def Current.getParamF64 (c: Current) (i: Int64) : IO Float :=
+  getFunctionParamF64 c i
+
+@[extern "l_extism_current_set_result_f32"]
+private opaque setFunctionResultF32 : Current -> Int64 -> Float -> IO Unit
+
+partial def Current.setResultf32 (c: Current) (i: Int32) (x: Float) : IO Unit :=
+  setFunctionResultF32 c i x
+
+@[extern "l_extism_current_get_param_f32"]
+private opaque getFunctionParamF32 : Current -> Int64 -> IO Float
+
+partial def Current.getParamF32 (c: Current) (i: Int64) : IO Float :=
+  getFunctionParamF32 c i
