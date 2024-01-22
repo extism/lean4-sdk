@@ -2,9 +2,12 @@ import Lake
 
 open Lake DSL
 
+def extismIncludePath := "/usr/local/include"
+def extismLibPath := "/usr/local/lib"
+
 package extism {
   -- precompileModules := true
-  moreLinkArgs := #["-lextism"]
+  moreLinkArgs := #["-L" ++ extismLibPath, "-lextism"]
 }
 
 lean_lib Extism 
@@ -18,7 +21,7 @@ lean_exe test {
 target bindings.o pkg : FilePath := do
   let oFile := pkg.buildDir / "c" / "bindings.o"
   let srcJob ← inputFile <| pkg.dir / "c" / "bindings.c"
-  let weakArgs := #["-I", (← getLeanIncludeDir).toString, "-I", "/usr/local/include"]
+  let weakArgs := #["-I", (← getLeanIncludeDir).toString, "-I", extismIncludePath]
   buildO "bindings.c" oFile srcJob weakArgs #["-fPIC", "--std=c11"] "cc" getLeanTrace
 
 extern_lib libleanextism pkg := do
