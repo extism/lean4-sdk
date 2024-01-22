@@ -47,6 +47,15 @@ private opaque pluginRefCall : PluginRef -> String -> ByteArray -> IO ByteArray
 @[extern "l_extism_function_new"]
 private opaque functionNew : String -> String -> Array UInt8 -> Array UInt8 -> (Current -> IO Unit) -> IO Function
 
+class PluginInput (a: Type) where
+  toPluginInput: a -> ByteArray
+
+instance : PluginInput ByteArray where
+  toPluginInput x := x
+
+instance : PluginInput String where
+  toPluginInput := String.toUTF8
+
 def Function.newInNamespace (ns : String) (name: String) (params: Array ValType) (results: Array ValType) (f: Current -> IO Unit) : IO Function :=
   functionNew ns name (Array.map ValType.toInt params) (Array.map ValType.toInt results) f 
 
@@ -57,8 +66,11 @@ structure Plugin where
   inner: PluginRef
   functions: Array Function
 
-def Plugin.new (data: ByteArray) (functions: Array Function) (wasi : Bool) : IO Plugin := do
-  let x := <- newPluginRef data functions wasi
+def Plugin.new [PluginInput a] (data: a) (functions: Array Function) (wasi : Bool) : IO Plugin := do
+  let input := PluginInput.toPluginInput data
+  let s := String.fromUTF8Unchecked input
+  IO.println s!"Input {s}"
+  let x := <- newPluginRef input functions wasi
   return (Plugin.mk x #[])
   
 def Plugin.fromFile (path: System.FilePath) (functions: Array Function) (wasi : Bool) : IO Plugin := do
@@ -67,6 +79,10 @@ def Plugin.fromFile (path: System.FilePath) (functions: Array Function) (wasi : 
 
 def Plugin.call (plugin: Plugin) (funcName: String) (data: ByteArray) : IO ByteArray :=
   pluginRefCall plugin.inner funcName data
+
+def Plugin.pipe (plugin: Plugin) (names: List String) (data: ByteArray) : IO ByteArray :=
+  List.foldlM (fun acc x =>
+    Plugin.call plugin x acc) data names
   
 @[extern "l_extism_current_set_result_i64"]
 private opaque setFunctionResultI64 : Current -> Int64 -> Int64 -> IO Unit
