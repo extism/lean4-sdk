@@ -185,60 +185,96 @@ lean_obj_res l_extism_function_new(b_lean_obj_arg funcNamespace,
 }
 
 lean_obj_res l_extism_current_get_param_i64(b_lean_obj_arg current,
-                                            b_lean_obj_arg i) {
+                                            uint64_t i) {
   Current *c = current_plugin_unbox(current);
-  return lean_io_result_mk_ok(lean_box(c->params[lean_unbox(i)].v.i64));
+  assert(extism_current_plugin_memory_length(c->plugin, c->params[i].v.i64));
+  return lean_io_result_mk_ok(lean_box_uint64(c->params[i].v.i64));
 }
 
-lean_obj_res l_extism_current_set_result_i64(b_lean_obj_arg current,
-                                             b_lean_obj_arg i,
-                                             b_lean_obj_arg x) {
+lean_obj_res l_extism_current_set_result_i64(b_lean_obj_arg current, uint64_t i,
+                                             uint64_t x) {
   Current *c = current_plugin_unbox(current);
-  c->results[lean_unbox(i)].t = I64;
-  c->results[lean_unbox(i)].v.i64 = lean_unbox(x);
+  c->results[i].t = I64;
+  c->results[i].v.i64 = x;
   return lean_io_result_mk_ok(lean_box(0));
 }
 
 lean_obj_res l_extism_current_get_param_i32(b_lean_obj_arg current,
-                                            b_lean_obj_arg i) {
+                                            uint64_t i) {
   Current *c = current_plugin_unbox(current);
-  return lean_io_result_mk_ok(lean_box(c->params[lean_unbox(i)].v.i32));
+  return lean_io_result_mk_ok(lean_box_uint32(c->params[i].v.i32));
 }
 
-lean_obj_res l_extism_current_set_result_i32(b_lean_obj_arg current,
-                                             b_lean_obj_arg i,
-                                             b_lean_obj_arg x) {
+lean_obj_res l_extism_current_set_result_i32(b_lean_obj_arg current, uint64_t i,
+                                             uint32_t x) {
   Current *c = current_plugin_unbox(current);
-  c->results[lean_unbox(i)].t = I32;
-  c->results[lean_unbox(i)].v.i32 = lean_unbox(x);
+  c->results[i].t = I32;
+  c->results[i].v.i32 = x;
   return lean_io_result_mk_ok(lean_box(0));
 }
 
 lean_obj_res l_extism_current_get_param_f32(b_lean_obj_arg current,
-                                            b_lean_obj_arg i) {
+                                            uint64_t i) {
   Current *c = current_plugin_unbox(current);
-  return lean_io_result_mk_ok(lean_box_float(c->params[lean_unbox(i)].v.f32));
+  return lean_io_result_mk_ok(lean_box_float(c->params[i].v.f32));
 }
 
-lean_obj_res l_extism_current_set_result_f32(b_lean_obj_arg current,
-                                             b_lean_obj_arg i,
-                                             b_lean_obj_arg x) {
+lean_obj_res l_extism_current_set_result_f32(b_lean_obj_arg current, uint64_t i,
+                                             double x) {
   Current *c = current_plugin_unbox(current);
-  c->results[lean_unbox(i)].t = F32;
-  c->results[lean_unbox(i)].v.f32 = lean_unbox_float(x);
+  c->results[i].t = F32;
+  c->results[i].v.f32 = x;
   return lean_io_result_mk_ok(lean_box(0));
 }
 lean_obj_res l_extism_current_get_param_f64(b_lean_obj_arg current,
-                                            b_lean_obj_arg i) {
+                                            uint64_t i) {
   Current *c = current_plugin_unbox(current);
-  return lean_io_result_mk_ok(lean_box_float(c->params[lean_unbox(i)].v.f64));
+  return lean_io_result_mk_ok(lean_box_float(c->params[i].v.f64));
 }
 
-lean_obj_res l_extism_current_set_result_f64(b_lean_obj_arg current,
-                                             b_lean_obj_arg i,
-                                             b_lean_obj_arg x) {
+lean_obj_res l_extism_current_set_result_f64(b_lean_obj_arg current, uint64_t i,
+                                             double x) {
   Current *c = current_plugin_unbox(current);
-  c->results[lean_unbox(i)].t = F64;
-  c->results[lean_unbox(i)].v.f32 = lean_unbox_float(x);
+  c->results[i].t = F64;
+  c->results[i].v.f32 = (float)x;
+  return lean_io_result_mk_ok(lean_box(0));
+}
+
+lean_obj_res l_extism_current_alloc(b_lean_obj_arg current, uint64_t n) {
+  Current *c = current_plugin_unbox(current);
+  ExtismMemoryHandle h = extism_current_plugin_memory_alloc(c->plugin, n);
+  return lean_io_result_mk_ok(lean_box_uint64(h));
+}
+
+lean_obj_res l_extism_current_free(b_lean_obj_arg current, uint64_t x) {
+  Current *c = current_plugin_unbox(current);
+  extism_current_plugin_memory_free(c->plugin, x);
+  return lean_io_result_mk_ok(lean_box(0));
+}
+
+lean_obj_res l_extism_current_length(b_lean_obj_arg current, uint64_t x) {
+  Current *c = current_plugin_unbox(current);
+  ExtismSize size = extism_current_plugin_memory_length(c->plugin, x);
+  return lean_io_result_mk_ok(lean_box_uint64(size));
+}
+
+lean_obj_res l_extism_current_read(b_lean_obj_arg current, uint64_t x) {
+  Current *c = current_plugin_unbox(current);
+  ExtismSize size = extism_current_plugin_memory_length(c->plugin, x);
+  lean_obj_res res = lean_mk_empty_byte_array(lean_box(size));
+  void *dest = lean_sarray_cptr(res);
+  memcpy(dest, extism_current_plugin_memory(c->plugin) + x, size);
+  lean_sarray_set_size(res, size);
+  return lean_io_result_mk_ok(res);
+}
+
+lean_obj_res l_extism_current_write(b_lean_obj_arg current, uint64_t x,
+                                    b_lean_obj_arg bytes) {
+  Current *c = current_plugin_unbox(current);
+  ExtismSize size = extism_current_plugin_memory_length(c->plugin, x);
+  size_t arrSize = lean_sarray_size(bytes);
+  void *dest = lean_sarray_cptr(bytes);
+  memcpy(extism_current_plugin_memory(c->plugin) + x, dest,
+         size > arrSize ? arrSize : size);
   return lean_io_result_mk_ok(lean_box(0));
 }

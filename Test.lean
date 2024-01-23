@@ -3,8 +3,9 @@ import Extism
 open Extism
 
 def helloWorld (curr: Current) : IO Unit := do
-  let a := <- Current.getParamI64 curr 0
-  let _ := <- Current.setResultI64 curr 0 a
+  let s: String := <- Current.param curr 0
+  IO.println s!"Input: {s}"
+  Current.result curr 0 s
   IO.println "Hello world!!!"
   IO.println "Hello world!!!"
   IO.println "Hello world!!!"
@@ -16,9 +17,8 @@ def hostFunction: IO Unit := do
     |> Manifest.withConfig "vowels" "aeiouyAEIOUY"
   let f := <- Function.new "hello_world" #[ValType.i64] #[ValType.i64] helloWorld
   let plugin := <- Plugin.new m #[f] True
-  let input := String.toUTF8 "this is a test"
-  let res: String := <- plugin.pipe ["count_vowels", "count_vowels"] input
-  IO.println s!"{res}"
+  let res: String := <- plugin.pipe ["count_vowels", "count_vowels"] "this is a test"
+  IO.println s!"Result: {res}"
 
 def fromUrl : IO Unit := do
   let url := "https://github.com/extism/plugins/releases/latest/download/count_vowels.wasm"
@@ -28,5 +28,5 @@ def fromUrl : IO Unit := do
   IO.println s!"{res}"
 
 def main : IO Unit := do
-  fromUrl
+  -- fromUrl
   hostFunction

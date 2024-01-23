@@ -1,4 +1,3 @@
-import Lean.Data.RBMap
 import Lean.Data.Json.Basic
 import Lean.Data.Json.FromToJson
 import Lean.Data.Json.Printer
@@ -6,6 +5,7 @@ import Lean.Data.Json.Parser
 
 private def Pair := String × Lean.Json
 
+/-- Wasm file -/
 structure Extism.WasmFile where
   path: System.FilePath
   name: Option String
@@ -27,10 +27,7 @@ instance : Lean.ToJson Extism.WasmFile where
     let m := addIfSome m "hash" x.hash
     Lean.Json.mkObj m
 
-structure Extism.Memory where
-  maxPages: Int
-deriving Lean.FromJson, Lean.ToJson, Inhabited, Repr
-
+/-- Wasm URL -/
 structure Extism.WasmUrl where
   url: String
   headers: Option (List (String × String))
@@ -57,6 +54,7 @@ instance : Lean.ToJson Extism.WasmUrl where
     let m := addIfSome m "hash" x.hash
     Lean.Json.mkObj m
 
+/-- Wasm type -/
 inductive Extism.Wasm where
   | wasmFile: Extism.WasmFile -> Extism.Wasm
   | wasmUrl: Extism.WasmUrl -> Extism.Wasm
@@ -75,16 +73,24 @@ instance : Lean.ToJson Extism.Wasm where
     | Extism.Wasm.wasmFile f => Lean.ToJson.toJson f
     | Extism.Wasm.wasmUrl u => Lean.ToJson.toJson u
 
+/-- Create a new `Wasm` from a path on disk -/
 def Extism.Wasm.file (path: System.FilePath) : Wasm :=
   Extism.Wasm.wasmFile (WasmFile.mk path none none)
 
+/-- Create a new `Wasm` from a URL -/
 def Extism.Wasm.url (url: String) : Wasm :=
   Extism.Wasm.wasmUrl (WasmUrl.mk url none none none none)
 
+/-- Memory limits -/
+structure Extism.Memory where
+  maxPages: Int
+deriving Lean.FromJson, Lean.ToJson, Inhabited, Repr
+
+/-- Extism Manifest, used to link and configure plugins -/
 structure Extism.Manifest: Type where
   wasm: Array Wasm
   allowedHosts: Option (List String)
-  allowedPaths: Option (List (String × String))
+  allowedPaths: Option (List (System.FilePath × System.FilePath))
   memory: Option Memory
   config: Option (List (String × String))
   timeoutMs: Option Int
@@ -105,7 +111,7 @@ instance : Lean.ToJson Extism.Manifest where
     let paths := match x.allowedPaths with
       | Option.some x =>
         List.map (fun (k, v) =>
-          (k, Lean.toJson v)) x
+          (k.toString, Lean.toJson v)) x
         |> Lean.Json.mkObj
         |> Option.some
       | Option.none => Option.none
@@ -117,37 +123,48 @@ instance : Lean.ToJson Extism.Manifest where
     Lean.Json.mkObj m
 
 
+/-- Create a new Manifest from an array of `Wasm` -/
 def Extism.Manifest.new (wasm: Array Extism.Wasm) : Extism.Manifest :=
   Extism.Manifest.mk wasm none none none none none
 
-def Extism.Manifest.withMemoryMax (max: Int) (m: Extism.Manifest) : Extism.Manifest :=
+/-- Set memory max pages -/
+def Extism.Manifest.withMaxPages (max: Int) (m: Extism.Manifest) : Extism.Manifest :=
   {m with memory := some (Extism.Memory.mk max)}
 
+/-- Set configuration key -/
 def Extism.Manifest.withConfig (k: String) (v: String) (m: Extism.Manifest) :=
   let c := match m.config with
     | Option.none => []
     | Option.some x => x
   {m with config := (k, v) :: c}
 
+/-- Set timeout in milliseconds -/
 def Extism.Manifest.withTimeout (ms: Int) (m: Extism.Manifest) :=
   {m with timeoutMs := Option.some ms}
 
-def Extism.Manifest.allowPath (k: String) (v: String) (m: Extism.Manifest) :=
+/-- Allow access to a path on disk -/
+def Extism.Manifest.allowPath (k: System.FilePath) (v: Option System.FilePath) (m: Extism.Manifest) :=
   let c := match m.allowedPaths with
     | Option.none => []
     | Option.some x => x
+  let v := match v with
+    | Option.none => k
+    | Option.some v => v
   {m with allowedPaths := (k, v) :: c}
 
+/-- Allow host -/
 def Extism.Manifest.allowHost (k: String) (m: Extism.Manifest) :=
   let c := match m.allowedHosts with
     | Option.none => []
     | Option.some x => x
   {m with allowedHosts := k :: c}
 
+/-- Convenience function to convert an `Extism.Manifest` to a JSON string -/
 def Extism.Manifest.json (m: Extism.Manifest) : String :=
   let x := Lean.ToJson.toJson m
   Lean.Json.pretty x
 
+/-- Convenience function to parse an `Extism.Manifest` from a string -/
 def Extism.Manifest.parseJson (s: String) : Except String Extism.Manifest := do
   let x := <- Lean.Json.parse s
   Lean.FromJson.fromJson? x

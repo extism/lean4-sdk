@@ -5,11 +5,18 @@ import Lean.Data.Json.Printer
 
 import Extism.Manifest
 
+/-- `PluginInput` is implemented by types that can be accepted as the wasm input to
+    `Plugin.new` --/
 class Extism.PluginInput (a: Type) where
   toPluginInput: a -> ByteArray
 
+/-- `ToBytes` is used to convert input data into bytes -/
 class Extism.ToBytes (a: Type) where
   toBytes: a -> ByteArray
+
+/-- `FromBytes` is used to convert from bytes to output data -/
+class Extism.FromBytes (a: Type) where
+  fromBytes?: ByteArray -> Except String a
 
 instance : Extism.ToBytes ByteArray where
   toBytes (x: ByteArray) := x
@@ -19,9 +26,6 @@ instance : Extism.ToBytes String where
 
 instance [Lean.ToJson a] : Extism.ToBytes a where
   toBytes x := (Lean.Json.compress (Lean.ToJson.toJson x)).toUTF8
-
-class Extism.FromBytes (a: Type) where
-  fromBytes?: ByteArray -> Except String a
 
 instance : Extism.FromBytes ByteArray where
   fromBytes? (x: ByteArray) := Except.ok x
