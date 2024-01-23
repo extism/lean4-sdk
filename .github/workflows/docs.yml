@@ -35,7 +35,7 @@ jobs:
           echo "Adding location $HOME/.elan/bin to PATH..."
           echo "$HOME/.elan/bin" >> $GITHUB_PATH
 
-      - run: lake -R -Kenv=dev build Extism:docs || :
+      - run: "lake -R -Kenv=dev build Extism:docs || :"
 
       - name: Setup Pages
         uses: actions/configure-pages@v3
