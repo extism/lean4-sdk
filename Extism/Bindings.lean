@@ -59,7 +59,7 @@ class ToBytes (a: Type) where
   toBytes: a -> ByteArray
 
 instance : ToBytes ByteArray where
-  toBytes x := x
+  toBytes (x: ByteArray) := x
 
 instance : ToBytes String where
   toBytes := String.toUTF8
@@ -71,7 +71,7 @@ class FromBytes (a: Type) where
   fromBytes?: ByteArray -> Except String a
 
 instance : FromBytes ByteArray where
-  fromBytes? x := Except.ok x
+  fromBytes? (x: ByteArray) := Except.ok x
 
 instance : FromBytes String where
   fromBytes? x := Except.ok (String.fromUTF8Unchecked x)
@@ -110,9 +110,12 @@ def Plugin.call [ToBytes a] [FromBytes b] (plugin: Plugin) (funcName: String) (d
   let res := <- pluginRefCall plugin.inner funcName (ToBytes.toBytes data)
   IO.ofExcept (FromBytes.fromBytes? res)
 
-def Plugin.pipe (plugin: Plugin) (names: List String) (data: ByteArray) : IO ByteArray :=
-  List.foldlM (fun acc x =>
+def Plugin.pipe [ToBytes a] [FromBytes b] (plugin: Plugin) (names: List String) (data: a) : IO b := do
+  let data := ToBytes.toBytes data
+  let res := <- List.foldlM (fun acc x =>
     Plugin.call plugin x acc) data names
+  FromBytes.fromBytes? res
+  |> IO.ofExcept
 
 @[extern "l_extism_current_set_result_i64"]
 private opaque setFunctionResultI64 : @& Current -> @& Int64 -> @& Int64 -> IO Unit

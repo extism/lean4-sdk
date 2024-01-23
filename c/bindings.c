@@ -149,6 +149,7 @@ static void generic_function_callback(ExtismCurrentPlugin *plugin,
   lean_obj_res p =
       current_plugin_box(plugin, params, nparams, results, nresults);
   lean_inc(p);
+  lean_inc(f);
   lean_obj_res r = lean_apply_2(f, p, lean_box(0));
   memcpy(results, current_plugin_unbox(p)->results,
          nresults * sizeof(ExtismVal));
