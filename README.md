@@ -43,6 +43,7 @@ def main : IO Unit := do
   let url := "https://github.com/extism/plugins/releases/latest/download/count_vowels.wasm"
   let m := Manifest.new #[Wasm.url url]
   let plugin := <- Plugin.new m #[] True
+  ...
 ```
 
 ### Calling A Plug-in's Exports

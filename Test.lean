@@ -16,6 +16,7 @@ def hostFunction: IO Unit := do
   let input := String.toUTF8 "this is a test"
   let res := <- String.fromUTF8Unchecked <$> plugin.call "count_vowels" input
   IO.println s!"{res}"
+  return ()
 
 def fromUrl : IO Unit := do
   let url := "https://github.com/extism/plugins/releases/latest/download/count_vowels.wasm"

@@ -90,7 +90,7 @@ lean_obj_res l_extism_version() {
   return lean_io_result_mk_ok(lean_mk_string(extism_version()));
 }
 
-lean_obj_res l_extism_plugin_new(b_lean_obj_arg data, b_lean_obj_arg functions,
+lean_obj_res l_extism_plugin_new(b_lean_obj_arg data, lean_obj_arg functions,
                                  uint8_t wasi) {
   size_t dataLen = lean_sarray_size(data);
   void *dataBytes = lean_sarray_cptr(data);
@@ -134,7 +134,6 @@ lean_obj_res l_extism_plugin_call(b_lean_obj_arg pluginArg,
 
   size_t length = extism_plugin_output_length(plugin);
   const uint8_t *output = extism_plugin_output_data(plugin);
-
   lean_obj_res x = lean_mk_empty_byte_array(lean_box(length));
   void *dest = lean_sarray_cptr(x);
   memcpy(dest, output, length);
@@ -149,6 +148,7 @@ static void generic_function_callback(ExtismCurrentPlugin *plugin,
   b_lean_obj_arg f = userdata;
   lean_obj_res p =
       current_plugin_box(plugin, params, nparams, results, nresults);
+  lean_inc(p);
   lean_obj_res r = lean_apply_2(f, p, lean_box(0));
   memcpy(results, current_plugin_unbox(p)->results,
          nresults * sizeof(ExtismVal));
@@ -159,7 +159,7 @@ static void generic_function_callback(ExtismCurrentPlugin *plugin,
 lean_obj_res l_extism_function_new(b_lean_obj_arg funcNamespace,
                                    b_lean_obj_arg funcName,
                                    b_lean_obj_arg params,
-                                   b_lean_obj_arg results, b_lean_obj_arg f) {
+                                   b_lean_obj_arg results, lean_obj_arg f) {
   const char *name = lean_string_cstr(funcName);
   const char *ns = lean_string_cstr(funcNamespace);
   size_t paramsLen = lean_array_size(params);
@@ -173,7 +173,6 @@ lean_obj_res l_extism_function_new(b_lean_obj_arg funcNamespace,
   for (size_t i = 0; i < resultsLen; i++) {
     resultVals[i] = (uint8_t)lean_unbox(lean_array_uget(results, i));
   }
-  lean_inc(f);
   ExtismFunction *func =
       extism_function_new(name, paramVals, paramsLen, resultVals, resultsLen,
                           generic_function_callback, f, (void *)lean_dec);
