@@ -21,6 +21,39 @@ private opaque CurrentPointed : NonemptyType
 def Current : Type := CurrentPointed.type
 instance : Nonempty Current := CurrentPointed.property
 
+@[extern "l_extism_current_set_result_i64"]
+opaque Current.setResultI64 : @& Current -> @& Int64 -> @& Int64 -> IO Unit
+
+@[extern "l_extism_current_get_param_i64"]
+opaque Current.getParamI64 : @& Current -> @& Int64 -> IO Int64
+
+@[extern "l_extism_current_set_result_i32"]
+opaque Current.setResultI32 : @& Current -> @& Int64 -> @& Int32 -> IO Unit
+
+@[extern "l_extism_current_get_param_i32"]
+opaque Current.getParamI32 : @& Current -> @& Int64 -> IO Int32
+
+@[extern "l_extism_current_set_result_f64"]
+opaque Current.setResultF64 : @& Current -> @& Int64 -> @& Float -> IO Unit
+
+@[extern "l_extism_current_get_param_f64"]
+opaque Current.getParamF64 : @& Current -> @& Int64 -> IO Float
+
+@[extern "l_extism_current_set_result_f32"]
+opaque Current.setResultF32 : @& Current -> @& Int64 -> @& Float -> IO Unit
+
+@[extern "l_extism_current_get_param_f32"]
+opaque Current.getParamF32 : @& Current -> @& Int64 -> IO Float
+
+@[extern "l_extism_plugin_new"]
+private opaque newPluginRef : @& ByteArray -> @& Array Function -> Bool -> IO PluginRef
+
+@[extern "l_extism_plugin_call"]
+private opaque pluginRefCall : @& PluginRef -> @& String -> @& ByteArray -> IO ByteArray
+
+@[extern "l_extism_function_new"]
+private opaque functionNew :
+  @& String -> @& String -> @& Array UInt8 -> @& Array UInt8 -> (Current -> IO Unit) -> IO Function
 
 inductive ValType where
   | i32
@@ -39,18 +72,13 @@ def ValType.toInt (v: ValType) : UInt8 :=
   | funcref => 4
   | externref => 5
 
-@[extern "l_extism_plugin_new"]
-private opaque newPluginRef : @& ByteArray -> @& Array Function -> Bool -> IO PluginRef
-
-private def newPluginFromFile (path : System.FilePath) (functions: Array Function) (wasi : Bool) : IO PluginRef := do
+private def newPluginFromFile
+  (path : System.FilePath)
+  (functions: Array Function)
+  (wasi : Bool) : IO PluginRef
+:= do
   let data := <- IO.FS.readBinFile path
   newPluginRef data functions wasi
-
-@[extern "l_extism_plugin_call"]
-private opaque pluginRefCall : @& PluginRef -> @& String -> @& ByteArray -> IO ByteArray
-
-@[extern "l_extism_function_new"]
-private opaque functionNew : @& String -> @& String -> @& Array UInt8 -> @& Array UInt8 -> (Current -> IO Unit) -> IO Function
 
 class PluginInput (a: Type) where
   toPluginInput: a -> ByteArray
@@ -87,81 +115,64 @@ instance : PluginInput ByteArray where
 instance : PluginInput String where
   toPluginInput := String.toUTF8
 
-def Function.newInNamespace (ns : String) (name: String) (params: Array ValType) (results: Array ValType) (f: Current -> IO Unit) : IO Function :=
-  functionNew ns name (Array.map ValType.toInt params) (Array.map ValType.toInt results) f
+def Function.newInNamespace
+  (ns : String)
+  (name: String)
+  (params: Array ValType)
+  (results: Array ValType)
+  (f: Current -> IO Unit) : IO Function
+:=
+  let params := Array.map ValType.toInt params
+  let results := Array.map ValType.toInt results
+  functionNew ns name params results f
 
-def Function.new (name: String) (params: Array ValType) (results: Array ValType) (f: Current -> IO Unit) : IO Function :=
+def Function.new
+  (name: String)
+  (params: Array ValType)
+  (results: Array ValType)
+  (f: Current -> IO Unit) : IO Function
+:=
   Function.newInNamespace "extism:host/user" name params results f
 
 structure Plugin where
   inner: PluginRef
   functions: Array Function
 
-def Plugin.new [PluginInput a] (data: a) (functions: Array Function) (wasi : Bool) : IO Plugin := do
+def Plugin.new [PluginInput a]
+  (data: a)
+  (functions: Array Function)
+  (wasi : Bool) : IO Plugin
+:= do
   let input := PluginInput.toPluginInput data
   let x := <- newPluginRef input functions wasi
   return (Plugin.mk x #[])
 
-def Plugin.fromFile (path: System.FilePath) (functions: Array Function) (wasi : Bool) : IO Plugin := do
+def Plugin.fromFile
+  (path: System.FilePath)
+  (functions: Array Function)
+  (wasi : Bool) : IO Plugin
+:= do
   let x := <- newPluginFromFile path functions wasi
   return (Plugin.mk x #[])
 
-def Plugin.call [ToBytes a] [FromBytes b] (plugin: Plugin) (funcName: String) (data: a) : IO b := do
-  let res := <- pluginRefCall plugin.inner funcName (ToBytes.toBytes data)
+def Plugin.call [ToBytes a] [FromBytes b]
+  (plugin: Plugin)
+  (funcName: String)
+  (data: a) : IO b
+:= do
+  let data := ToBytes.toBytes data
+  let res := <- pluginRefCall plugin.inner funcName data
   IO.ofExcept (FromBytes.fromBytes? res)
 
-def Plugin.pipe [ToBytes a] [FromBytes b] (plugin: Plugin) (names: List String) (data: a) : IO b := do
+def Plugin.pipe [ToBytes a] [FromBytes b]
+  (plugin: Plugin)
+  (names: List String)
+  (data: a) : IO b
+:= do
   let data := ToBytes.toBytes data
   let res := <- List.foldlM (fun acc x =>
     Plugin.call plugin x acc) data names
   FromBytes.fromBytes? res
   |> IO.ofExcept
 
-@[extern "l_extism_current_set_result_i64"]
-private opaque setFunctionResultI64 : @& Current -> @& Int64 -> @& Int64 -> IO Unit
 
-partial def Current.setResultI64 (c: Current) (i: Int64) (x: Int64) : IO Unit :=
-  setFunctionResultI64 c i x
-
-@[extern "l_extism_current_get_param_i64"]
-private opaque getFunctionParamI64 : @& Current -> @& Int64 -> IO Int64
-
-partial def Current.getParamI64 (c: Current) (i: Int64) : IO Int64 :=
-  getFunctionParamI64 c i
-
-@[extern "l_extism_current_set_result_i32"]
-private opaque setFunctionResultI32 : @& Current -> @& Int64 -> @& Int32 -> IO Unit
-
-partial def Current.setResultI32 (c: Current) (i: Int32) (x: Int32) : IO Unit :=
-  setFunctionResultI32 c i x
-
-@[extern "l_extism_current_get_param_i32"]
-private opaque getFunctionParamI32 : @& Current -> @& Int64 -> IO Int32
-
-partial def Current.getParamI32 (c: Current) (i: Int64) : IO Int32 :=
-  getFunctionParamI32 c i
-
-
-@[extern "l_extism_current_set_result_f64"]
-private opaque setFunctionResultF64 : @& Current -> @& Int64 -> @& Float -> IO Unit
-
-partial def Current.setResultF64 (c: Current) (i: Int64) (x: Float) : IO Unit :=
-  setFunctionResultF64 c i x
-
-@[extern "l_extism_current_get_param_f64"]
-private opaque getFunctionParamF64 : @& Current -> @& Int64 -> IO Float
-
-partial def Current.getParamF64 (c: Current) (i: Int64) : IO Float :=
-  getFunctionParamF64 c i
-
-@[extern "l_extism_current_set_result_f32"]
-private opaque setFunctionResultF32 : @& Current -> @& Int64 -> @& Float -> IO Unit
-
-partial def Current.setResultf32 (c: Current) (i: Int32) (x: Float) : IO Unit :=
-  setFunctionResultF32 c i x
-
-@[extern "l_extism_current_get_param_f32"]
-private opaque getFunctionParamF32 : @& Current -> @& Int64 -> IO Float
-
-partial def Current.getParamF32 (c: Current) (i: Int64) : IO Float :=
-  getFunctionParamF32 c i

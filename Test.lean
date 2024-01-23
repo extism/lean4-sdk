@@ -10,7 +10,8 @@ def helloWorld (curr: Current) : IO Unit := do
   IO.println "Hello world!!!"
 
 def hostFunction: IO Unit := do
-  let m := Manifest.new #[Wasm.file "wasm/code-functions.wasm"] |> Manifest.withConfig "vowels" "aeiouyAEIOUY"
+  let m := Manifest.new #[Wasm.file "wasm/code-functions.wasm"]
+    |> Manifest.withConfig "vowels" "aeiouyAEIOUY"
   let f := <- Function.new "hello_world" #[ValType.i64] #[ValType.i64] helloWorld
   let plugin := <- Plugin.new m #[f] True
   let input := String.toUTF8 "this is a test"

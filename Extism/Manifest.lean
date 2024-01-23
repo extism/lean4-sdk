@@ -4,6 +4,7 @@ import Lean.Data.Json.FromToJson
 import Lean.Data.Json.Printer
 import Lean.Data.Json.Parser
 
+private def Pair := String × Lean.Json
 
 structure WasmFile where
   path: System.FilePath
@@ -12,13 +13,13 @@ structure WasmFile where
 deriving Lean.FromJson, Lean.ToJson, Inhabited, Repr
 
 
-def addIfSome [Lean.ToJson a] (obj: List (String × Lean.Json))  (k: String): Option a -> List (String × Lean.Json)
+private def addIfSome [Lean.ToJson a] (obj: List Pair) (k: String): Option a -> List Pair
   | Option.none => obj
   | Option.some x => (k, Lean.ToJson.toJson x) :: obj
 
 
 instance : Lean.ToJson WasmFile where
-  toJson x := 
+  toJson x :=
     let m := [
       ("path", Lean.ToJson.toJson x.path)
     ]
@@ -39,12 +40,16 @@ structure WasmUrl where
 deriving Lean.FromJson, Inhabited, Repr
 
 instance : Lean.ToJson WasmUrl where
-  toJson x := 
+  toJson x :=
     let m := [
       ("url", Lean.ToJson.toJson x.url)
     ]
     let h := match x.headers with
-      | Option.some x => List.map (fun (k, v) => (k, Lean.toJson v)) x |> Lean.Json.mkObj |> Option.some
+      | Option.some x =>
+        List.map (fun (k, v) =>
+          (k, Lean.toJson v)) x
+        |> Lean.Json.mkObj
+        |> Option.some
       | Option.none => Option.none
     let m := addIfSome m "headers" h
     let m := addIfSome m "method" x.method
@@ -66,7 +71,7 @@ instance : Lean.FromJson Wasm where
       return (Wasm.wasmUrl x)
 
 instance : Lean.ToJson Wasm where
-  toJson := fun 
+  toJson := fun
     | Wasm.wasmFile f => Lean.ToJson.toJson f
     | Wasm.wasmUrl u => Lean.ToJson.toJson u
 
@@ -85,15 +90,23 @@ structure Manifest: Type where
 deriving Lean.FromJson, Inhabited, Repr
 
 instance : Lean.ToJson Manifest where
-  toJson x := 
+  toJson x :=
     let m := [
       ("wasm", Lean.ToJson.toJson x.wasm)
     ]
     let config := match x.config with
-      | Option.some x => List.map (fun (k, v) => (k, Lean.toJson v)) x |> Lean.Json.mkObj |> Option.some
+      | Option.some x =>
+        List.map (fun (k, v) =>
+          (k, Lean.toJson v)) x
+        |> Lean.Json.mkObj
+        |> Option.some
       | Option.none => Option.none
     let paths := match x.allowedPaths with
-      | Option.some x => List.map (fun (k, v) => (k, Lean.toJson v)) x |> Lean.Json.mkObj |> Option.some
+      | Option.some x =>
+        List.map (fun (k, v) =>
+          (k, Lean.toJson v)) x
+        |> Lean.Json.mkObj
+        |> Option.some
       | Option.none => Option.none
     let m := addIfSome m "memory" x.memory
     let m := addIfSome m "allowed_hosts" x.allowedHosts
