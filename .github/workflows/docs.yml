@@ -28,7 +28,6 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
       - name: Setup elan toolchain on Linux or macOS
-        if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
         run: |
           curl -O --location https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh
           chmod u+x elan-init.sh
