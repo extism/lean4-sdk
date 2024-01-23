@@ -3,6 +3,10 @@ import Lean.Data.Json.Basic
 import Lean.Data.Json.Parser
 import Lean.Data.Json.Printer
 
+import Extism.Types
+
+open Extism
+
 @[extern "l_extism_version"]
 opaque version : IO String
 
@@ -14,36 +18,36 @@ private def PluginRef : Type := PluginPointed.type
 instance : Nonempty PluginRef := PluginPointed.property
 
 private opaque FunctionPointed : NonemptyType
-def Function : Type := FunctionPointed.type
-instance : Nonempty Function := FunctionPointed.property
+def Extism.Function : Type := FunctionPointed.type
+instance : Nonempty Extism.Function := FunctionPointed.property
 
 private opaque CurrentPointed : NonemptyType
-def Current : Type := CurrentPointed.type
-instance : Nonempty Current := CurrentPointed.property
+def Extism.Current : Type := CurrentPointed.type
+instance : Nonempty Extism.Current := CurrentPointed.property
 
 @[extern "l_extism_current_set_result_i64"]
-opaque Current.setResultI64 : @& Current -> @& Int64 -> @& Int64 -> IO Unit
+opaque Current.setResultI64 : @& Extism.Current -> @& Int64 -> @& Int64 -> IO Unit
 
 @[extern "l_extism_current_get_param_i64"]
-opaque Current.getParamI64 : @& Current -> @& Int64 -> IO Int64
+opaque Current.getParamI64 : @& Extism.Current -> @& Int64 -> IO Int64
 
 @[extern "l_extism_current_set_result_i32"]
-opaque Current.setResultI32 : @& Current -> @& Int64 -> @& Int32 -> IO Unit
+opaque Current.setResultI32 : @& Extism.Current -> @& Int64 -> @& Int32 -> IO Unit
 
 @[extern "l_extism_current_get_param_i32"]
-opaque Current.getParamI32 : @& Current -> @& Int64 -> IO Int32
+opaque Current.getParamI32 : @& Extism.Current -> @& Int64 -> IO Int32
 
 @[extern "l_extism_current_set_result_f64"]
-opaque Current.setResultF64 : @& Current -> @& Int64 -> @& Float -> IO Unit
+opaque Current.setResultF64 : @& Extism.Current -> @& Int64 -> @& Float -> IO Unit
 
 @[extern "l_extism_current_get_param_f64"]
-opaque Current.getParamF64 : @& Current -> @& Int64 -> IO Float
+opaque Current.getParamF64 : @& Extism.Current -> @& Int64 -> IO Float
 
 @[extern "l_extism_current_set_result_f32"]
-opaque Current.setResultF32 : @& Current -> @& Int64 -> @& Float -> IO Unit
+opaque Current.setResultF32 : @& Extism.Current -> @& Int64 -> @& Float -> IO Unit
 
 @[extern "l_extism_current_get_param_f32"]
-opaque Current.getParamF32 : @& Current -> @& Int64 -> IO Float
+opaque Current.getParamF32 : @& Extism.Current -> @& Int64 -> IO Float
 
 @[extern "l_extism_plugin_new"]
 private opaque newPluginRef : @& ByteArray -> @& Array Function -> Bool -> IO PluginRef
@@ -55,7 +59,8 @@ private opaque pluginRefCall : @& PluginRef -> @& String -> @& ByteArray -> IO B
 private opaque functionNew :
   @& String -> @& String -> @& Array UInt8 -> @& Array UInt8 -> (Current -> IO Unit) -> IO Function
 
-inductive ValType where
+-- ValType represents the possible types for host function params/results
+inductive Extism.ValType where
   | i32
   | i64
   | f32
@@ -63,7 +68,7 @@ inductive ValType where
   | funcref
   | externref
 
-def ValType.toInt (v: ValType) : UInt8 :=
+private def Extism.ValType.toInt (v: Extism.ValType) : UInt8 :=
   match v with
   | i32 => 0
   | i64 => 1
@@ -80,42 +85,9 @@ private def newPluginFromFile
   let data := <- IO.FS.readBinFile path
   newPluginRef data functions wasi
 
-class PluginInput (a: Type) where
-  toPluginInput: a -> ByteArray
 
-class ToBytes (a: Type) where
-  toBytes: a -> ByteArray
-
-instance : ToBytes ByteArray where
-  toBytes (x: ByteArray) := x
-
-instance : ToBytes String where
-  toBytes := String.toUTF8
-
-instance [Lean.ToJson a] : ToBytes a where
-  toBytes x := (Lean.Json.compress (Lean.ToJson.toJson x)).toUTF8
-
-class FromBytes (a: Type) where
-  fromBytes?: ByteArray -> Except String a
-
-instance : FromBytes ByteArray where
-  fromBytes? (x: ByteArray) := Except.ok x
-
-instance : FromBytes String where
-  fromBytes? x := Except.ok (String.fromUTF8Unchecked x)
-
-instance [Lean.FromJson a] : FromBytes a where
-  fromBytes? x := do
-    let j := <- Lean.Json.parse (String.fromUTF8Unchecked x)
-    Lean.FromJson.fromJson? j
-
-instance : PluginInput ByteArray where
-  toPluginInput x := x
-
-instance : PluginInput String where
-  toPluginInput := String.toUTF8
-
-def Function.newInNamespace
+-- Create a new host function in the specified namespace
+def Extism.Function.newInNamespace
   (ns : String)
   (name: String)
   (params: Array ValType)
@@ -126,7 +98,8 @@ def Function.newInNamespace
   let results := Array.map ValType.toInt results
   functionNew ns name params results f
 
-def Function.new
+-- Create a new host function in the default namespace
+def Extism.Function.new
   (name: String)
   (params: Array ValType)
   (results: Array ValType)
@@ -134,29 +107,33 @@ def Function.new
 :=
   Function.newInNamespace "extism:host/user" name params results f
 
-structure Plugin where
+-- Plugin struct
+structure Extism.Plugin where
   inner: PluginRef
   functions: Array Function
 
-def Plugin.new [PluginInput a]
+-- Create a new plugin from a `PluginInput`
+def Extism.Plugin.new [PluginInput a]
   (data: a)
   (functions: Array Function)
-  (wasi : Bool) : IO Plugin
+  (wasi : Bool) : IO Extism.Plugin
 := do
   let input := PluginInput.toPluginInput data
   let x := <- newPluginRef input functions wasi
-  return (Plugin.mk x #[])
+  return (Extism.Plugin.mk x #[])
 
-def Plugin.fromFile
+-- Create a new plugin from a file
+def Extism.Plugin.fromFile
   (path: System.FilePath)
   (functions: Array Function)
-  (wasi : Bool) : IO Plugin
+  (wasi : Bool) : IO Extism.Plugin
 := do
   let x := <- newPluginFromFile path functions wasi
-  return (Plugin.mk x #[])
+  return (Extism.Plugin.mk x #[])
 
-def Plugin.call [ToBytes a] [FromBytes b]
-  (plugin: Plugin)
+-- Call a plugin function, performing conversion of input and output
+def Extism.Plugin.call [ToBytes a] [FromBytes b]
+  (plugin: Extism.Plugin)
   (funcName: String)
   (data: a) : IO b
 := do
@@ -164,7 +141,8 @@ def Plugin.call [ToBytes a] [FromBytes b]
   let res := <- pluginRefCall plugin.inner funcName data
   IO.ofExcept (FromBytes.fromBytes? res)
 
-def Plugin.pipe [ToBytes a] [FromBytes b]
+-- Call multiple plugins, piping the output from the last into the next
+def Extism.Plugin.pipe [ToBytes a] [FromBytes b]
   (plugin: Plugin)
   (names: List String)
   (data: a) : IO b

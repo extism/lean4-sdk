@@ -1,5 +1,7 @@
 import Extism
 
+open Extism
+
 def helloWorld (curr: Current) : IO Unit := do
   let a := <- Current.getParamI64 curr 0
   let _ := <- Current.setResultI64 curr 0 a
