@@ -28,3 +28,6 @@ extern_lib libleanextism pkg := do
   let name := nameToStaticLib "leanextism"
   let ffiO ← fetch <| pkg.target ``bindings.o
   buildStaticLib (pkg.nativeLibDir / name) #[ffiO]
+
+meta if get_config? env = some "dev" then -- dev is so not everyone has to build it
+require «doc-gen4» from git "https://github.com/leanprover/doc-gen4" @ "main"
