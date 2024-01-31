@@ -65,7 +65,7 @@ instance : Lean.FromJson Extism.Wasm where
     match Lean.FromJson.fromJson? j with
     | Except.ok (x : Extism.WasmFile) => Except.ok (Extism.Wasm.wasmFile x)
     | Except.error _ => do
-      let x := <- Lean.FromJson.fromJson? j
+      let x <- Lean.FromJson.fromJson? j
       return (Extism.Wasm.wasmUrl x)
 
 instance : Lean.ToJson Extism.Wasm where
@@ -166,5 +166,5 @@ def Extism.Manifest.json (m: Extism.Manifest) : String :=
 
 /-- Convenience function to parse an `Extism.Manifest` from a string -/
 def Extism.Manifest.parseJson (s: String) : Except String Extism.Manifest := do
-  let x := <- Lean.Json.parse s
+  let x <- Lean.Json.parse s
   Lean.FromJson.fromJson? x

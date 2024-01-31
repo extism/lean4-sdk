@@ -42,7 +42,7 @@ import Extism
 def main : IO Unit := do
   let url := "https://github.com/extism/plugins/releases/latest/download/count_vowels.wasm"
   let m := Manifest.new #[Wasm.url url]
-  let plugin := <- Plugin.new m #[] True
+  let plugin <- Plugin.new m #[] True
   ...
 ```
 
@@ -57,8 +57,8 @@ import Extism
 def main : IO Unit := do
   let url := "https://github.com/extism/plugins/releases/latest/download/count_vowels.wasm"
   let m := Manifest.new #[Wasm.url url]
-  let plugin := <- Plugin.new m #[] True
-  let res: String := <- Plugin.call plugin "count_vowels" "Hello, world!"
+  let plugin <- Plugin.new m #[] True
+  let res: String <- Plugin.call plugin "count_vowels" "Hello, world!"
   IO.println s!"{res}"
   // => {"count":3,"total":3,"vowels":"aeiouAEIOU"}
 ```

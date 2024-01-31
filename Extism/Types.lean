@@ -35,7 +35,7 @@ instance : Extism.FromBytes String where
 
 instance [Lean.FromJson a] : Extism.FromBytes a where
   fromBytes? x := do
-    let j := <- Lean.Json.parse (String.fromUTF8Unchecked x)
+    let j <- Lean.Json.parse (String.fromUTF8Unchecked x)
     Lean.FromJson.fromJson? j
 
 instance : Extism.FromBytes UInt64 where

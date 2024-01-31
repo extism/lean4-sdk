@@ -78,13 +78,13 @@ private opaque currentWrite : @& Extism.Current -> UInt64 -> @& ByteArray -> IO 
 def Current.result [ToBytes a] (current: Extism.Current) (index: USize) (v: a) : IO Unit := do
   let data := ToBytes.toBytes v
   let len := data.size
-  let n := <- currentAlloc current len.toUInt64
+  let n <- currentAlloc current len.toUInt64
   currentWrite current n data
   Current.setResultI64 current index.toUInt64 n
 
 def Current.param [FromBytes a] (current: Extism.Current) (index: USize) : IO a := do
-  let n := <- Current.getParamI64 current index.toUInt64
-  let res := <- currentRead current n
+  let n <- Current.getParamI64 current index.toUInt64
+  let res <- currentRead current n
   let bytes := FromBytes.fromBytes? res
   IO.ofExcept bytes
   
@@ -121,7 +121,7 @@ private def newPluginFromFile
   (functions: Array Function)
   (wasi : Bool) : IO PluginRef
 := do
-  let data := <- IO.FS.readBinFile path
+  let data <- IO.FS.readBinFile path
   newPluginRef data functions wasi
 
 
@@ -158,7 +158,7 @@ def Extism.Plugin.new [PluginInput a]
   (wasi : Bool) : IO Extism.Plugin
 := do
   let input := PluginInput.toPluginInput data
-  let x := <- newPluginRef input functions wasi
+  let x <- newPluginRef input functions wasi
   return (Extism.Plugin.mk x #[])
 
 /-- Create a new plugin from a file -/
@@ -167,7 +167,7 @@ def Extism.Plugin.fromFile
   (functions: Array Function)
   (wasi : Bool) : IO Extism.Plugin
 := do
-  let x := <- newPluginFromFile path functions wasi
+  let x <- newPluginFromFile path functions wasi
   return (Extism.Plugin.mk x #[])
 
 /-- Call a plugin function, performing conversion of input and output -/
@@ -177,7 +177,7 @@ def Extism.Plugin.call [ToBytes a] [FromBytes b]
   (data: a) : IO b
 := do
   let data := ToBytes.toBytes data
-  let res := <- pluginRefCall plugin.inner funcName data
+  let res <- pluginRefCall plugin.inner funcName data
   IO.ofExcept (FromBytes.fromBytes? res)
 
 /-- Call multiple plugins, piping the output from the last into the next -/
@@ -187,7 +187,7 @@ def Extism.Plugin.pipe [ToBytes a] [FromBytes b]
   (data: a) : IO b
 := do
   let data := ToBytes.toBytes data
-  let res := <- List.foldlM (fun acc x =>
+  let res <- List.foldlM (fun acc x =>
     Plugin.call plugin x acc) data names
   FromBytes.fromBytes? res
   |> IO.ofExcept
