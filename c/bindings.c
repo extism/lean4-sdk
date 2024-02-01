@@ -107,8 +107,8 @@ lean_obj_res l_extism_plugin_new(b_lean_obj_arg data, lean_obj_arg functions,
                                            nFunctions, wasi == 1, &err);
   if (plugin == NULL) {
     const char *err_s =
-        err == NULL ? "Unknown error occured in call to Extism plugin" : err;
-    __auto_type e = lean_mk_io_user_error(lean_mk_string(err_s));
+        err == NULL ? "Unknown error occured when creating Extism plugin" : err;
+    lean_obj_res e = lean_mk_io_user_error(lean_mk_string(err_s));
     if (err != NULL) {
       extism_plugin_new_error_free(err);
     }
@@ -128,8 +128,8 @@ lean_obj_res l_extism_plugin_call(b_lean_obj_arg pluginArg,
   int32_t rc = extism_plugin_call(plugin, name, dataBytes, dataLen);
   if (rc != 0) {
     const char *err = extism_plugin_error(plugin);
-    return lean_mk_io_user_error(lean_mk_string(
-        err == NULL ? "Unknown error occured in call to Extism plugin" : err));
+    return lean_io_result_mk_error(lean_mk_io_user_error(lean_mk_string(
+        err == NULL ? "Unknown error occured in call to Extism plugin" : err)));
   }
 
   size_t length = extism_plugin_output_length(plugin);
@@ -178,7 +178,8 @@ lean_obj_res l_extism_function_new(b_lean_obj_arg funcNamespace,
       extism_function_new(name, paramVals, paramsLen, resultVals, resultsLen,
                           generic_function_callback, f, (void *)lean_dec);
   if (func == NULL) {
-    return lean_mk_io_user_error(lean_mk_string("Unable to create function"));
+    return lean_io_result_mk_error(
+        lean_mk_io_user_error(lean_mk_string("Unable to create function")));
   }
   extism_function_set_namespace(func, ns);
   return lean_io_result_mk_ok(function_box(func));

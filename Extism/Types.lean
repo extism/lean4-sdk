@@ -24,8 +24,18 @@ instance : Extism.ToBytes ByteArray where
 instance : Extism.ToBytes String where
   toBytes := String.toUTF8
 
-instance [Lean.ToJson a] : Extism.ToBytes a where
-  toBytes x := (Lean.Json.compress (Lean.ToJson.toJson x)).toUTF8
+
+inductive Json (a: Type) where
+  | val: a -> Json a
+
+def Json.inner: Json a -> a
+  | Json.val x => x
+
+def Json.mk: a -> Json a := Json.val
+
+instance [Lean.ToJson a] : Extism.ToBytes (Json a) where
+  toBytes
+    | Json.val x => (Lean.Json.compress (Lean.ToJson.toJson x)).toUTF8
 
 instance : Extism.FromBytes ByteArray where
   fromBytes? (x: ByteArray) := Except.ok x
@@ -33,10 +43,11 @@ instance : Extism.FromBytes ByteArray where
 instance : Extism.FromBytes String where
   fromBytes? x := Except.ok (String.fromUTF8Unchecked x)
 
-instance [Lean.FromJson a] : Extism.FromBytes a where
+instance [Lean.FromJson a] : Extism.FromBytes (Json a) where
   fromBytes? x := do
     let j <- Lean.Json.parse (String.fromUTF8Unchecked x)
-    Lean.FromJson.fromJson? j
+    let j <- Lean.FromJson.fromJson? j
+    Except.ok (Json.val j)
 
 instance : Extism.FromBytes UInt64 where
   fromBytes? x :=
