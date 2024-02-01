@@ -6,7 +6,7 @@ Note: These bindings are under active development and the public API is unstable
 
 ## Building
 
-The Extism shared object is required for these bindings to work, see our [https://extism.org/docs/install/](installation instructions).
+The Extism shared object is required for these bindings to work, see our [installation instructions](https://extism.org/docs/install/).
 
 From the root of the repository run:
 
