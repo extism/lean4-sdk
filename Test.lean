@@ -44,10 +44,23 @@ namespace proc
       |> Manifest.allowPath "/proc" "/proc"
     let plugin <- Plugin.new m #[] True
     let res: Json Status <- Plugin.call plugin "status" ""
-    IO.println s!"Name: {res.inner.name}"
+    assert! res.val.name == "test"
+    IO.println s!"Name: {res.val.name}"
 end proc
+
+structure VowelCount where
+  count: Int
+deriving Lean.FromJson
+
+def countVowels (s: String) : IO Int := do
+  let m := Manifest.new #[Wasm.file "wasm/code.wasm"]
+  let plugin <- Plugin.new m #[] True
+  let res: Json VowelCount <- plugin.call "count_vowels" s
+  return res.val.count
 
 def main : IO Unit := do
   fromUrl
   hostFunction
   proc.test
+  let testing <- countVowels "testing"
+  assert! testing = 2
