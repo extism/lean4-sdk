@@ -83,7 +83,9 @@ def Extism.Wasm.url (url: String) : Wasm :=
 
 /-- Memory limits -/
 structure Extism.Memory where
-  maxPages: Int
+  maxPages: Option Int
+  maxHttpResponseBytes: Option Int
+  maxVarBytes: Option Int
 deriving Lean.FromJson, Lean.ToJson, Inhabited, Repr
 
 /-- Extism Manifest, used to link and configure plugins -/
@@ -129,7 +131,29 @@ def Extism.Manifest.new (wasm: Array Extism.Wasm) : Extism.Manifest :=
 
 /-- Set memory max pages -/
 def Extism.Manifest.withMaxPages (max: Int) (m: Extism.Manifest) : Extism.Manifest :=
-  {m with memory := some (Extism.Memory.mk max)}
+  match m.memory with
+  | Option.none =>
+    {m with memory := some (Extism.Memory.mk (some max) none none)}
+  | Option.some x =>
+    {m with memory := some ({x with maxPages := max})}
+
+
+/-- Set memory max HTTP response size in bytes -/
+def Extism.Manifest.withMaxHttpResponseBytes (max: Int) (m: Extism.Manifest) : Extism.Manifest :=
+  match m.memory with
+  | Option.none =>
+    {m with memory := some (Extism.Memory.mk none (some max) none)}
+  | Option.some x =>
+    {m with memory := some ({x with maxHttpResponseBytes := max})}
+
+
+/-- Set the maxiumum size of the Extism var store in bytes -/
+def Extism.Manifest.withMaxVarBytes (max: Int) (m: Extism.Manifest) : Extism.Manifest :=
+  match m.memory with
+  | Option.none =>
+    {m with memory := some (Extism.Memory.mk none none (some max))}
+  | Option.some x =>
+    {m with memory := some ({x with maxVarBytes := max})}
 
 /-- Set configuration key -/
 def Extism.Manifest.withConfig (k: String) (v: String) (m: Extism.Manifest) :=

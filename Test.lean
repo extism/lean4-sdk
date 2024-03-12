@@ -2,6 +2,13 @@ import Extism
 
 open Extism
 
+def isVowel (c: Char) : Bool :=
+  c = 'a' || c = 'A' || c = 'e' || c = 'E' || c = 'i' || c = 'I' || c = 'o' || c = 'O' || c = 'u' || c = 'U'
+
+def countVowels' (s: String) : Int :=
+  String.foldl (fun acc x => 
+    if isVowel x then acc + 1 else acc) 0 s
+
 --/ Example host function, takes one parameter and returns one result
 --/ In this case we are just logging the input and returning it
 def helloWorld (curr: Current) : IO Unit := do
@@ -63,4 +70,4 @@ def main : IO Unit := do
   hostFunction
   proc.test
   let testing <- countVowels "testing"
-  assert! testing = 2
+  assert! testing = countVowels' "testing"
