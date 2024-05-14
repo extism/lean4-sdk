@@ -35,11 +35,13 @@ instance : Extism.FromBytes ByteArray where
   fromBytes? (x: ByteArray) := Except.ok x
 
 instance : Extism.FromBytes String where
-  fromBytes? x := Except.ok (String.fromUTF8Unchecked x)
+  fromBytes? x := match String.fromUTF8? x with
+    | some x => Except.ok x
+    | none => Except.error "Invalid UTF8 string"
 
 instance [Lean.FromJson a] : Extism.FromBytes (Json a) where
   fromBytes? x := do
-    let j <- Lean.Json.parse (String.fromUTF8Unchecked x)
+    let j <- Lean.Json.parse (String.fromUTF8! x )
     let j <- Lean.FromJson.fromJson? j
     Except.ok (Json.mk j)
 

@@ -9,23 +9,19 @@ def countVowels' (s: String) : Int :=
   String.foldl (fun acc x => 
     if isVowel x then acc + 1 else acc) 0 s
 
---/ Example host function, takes one parameter and returns one result
---/ In this case we are just logging the input and returning it
-def helloWorld (curr: Current) : IO Unit := do
-  let s: String <- Current.param curr 0
-  IO.println s!"Input: {s}"
-  Current.result curr 0 s
-  IO.println "Hello world!!!"
-  IO.println "Hello world!!!"
-  IO.println "Hello world!!!"
-  IO.println "Hello world!!!"
-  IO.println "Hello world!!!"
-
 --/ Example with host functions
 def hostFunction: IO Unit := do
   let m := Manifest.new #[Wasm.file "wasm/code-functions.wasm"]
     |> Manifest.withConfig "vowels" "aeiouyAEIOUY"
-  let f <- Function.new "hello_world" #[ValType.i64] #[ValType.i64] helloWorld
+  let f <- Function.new "hello_world" #[ValType.i64] #[ValType.i64] $ fun curr => do
+    let s: String <- Current.param curr 0
+    IO.println s!"Input: {s}"
+    Current.result curr 0 s
+    IO.println "Hello world!!!"
+    IO.println "Hello world!!!"
+    IO.println "Hello world!!!"
+    IO.println "Hello world!!!"
+    IO.println "Hello world!!!"
   let plugin <- Plugin.new m #[f] True
   let res: String <- plugin.pipe ["count_vowels", "count_vowels"] "this is a test"
   IO.println s!"Result: {res}"
