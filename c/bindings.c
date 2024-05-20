@@ -195,7 +195,7 @@ lean_obj_res l_extism_current_get_param_i64(b_lean_obj_arg current,
 lean_obj_res l_extism_current_set_result_i64(b_lean_obj_arg current, uint64_t i,
                                              uint64_t x) {
   Current *c = current_plugin_unbox(current);
-  c->results[i].t = I64;
+  c->results[i].t = ExtismValType_I64;
   c->results[i].v.i64 = x;
   return lean_io_result_mk_ok(lean_box(0));
 }
@@ -209,7 +209,7 @@ lean_obj_res l_extism_current_get_param_i32(b_lean_obj_arg current,
 lean_obj_res l_extism_current_set_result_i32(b_lean_obj_arg current, uint64_t i,
                                              uint32_t x) {
   Current *c = current_plugin_unbox(current);
-  c->results[i].t = I32;
+  c->results[i].t = ExtismValType_I32;
   c->results[i].v.i32 = x;
   return lean_io_result_mk_ok(lean_box(0));
 }
@@ -223,7 +223,7 @@ lean_obj_res l_extism_current_get_param_f32(b_lean_obj_arg current,
 lean_obj_res l_extism_current_set_result_f32(b_lean_obj_arg current, uint64_t i,
                                              double x) {
   Current *c = current_plugin_unbox(current);
-  c->results[i].t = F32;
+  c->results[i].t = ExtismValType_F32;
   c->results[i].v.f32 = x;
   return lean_io_result_mk_ok(lean_box(0));
 }
@@ -236,7 +236,7 @@ lean_obj_res l_extism_current_get_param_f64(b_lean_obj_arg current,
 lean_obj_res l_extism_current_set_result_f64(b_lean_obj_arg current, uint64_t i,
                                              double x) {
   Current *c = current_plugin_unbox(current);
-  c->results[i].t = F64;
+  c->results[i].t = ExtismValType_F64;
   c->results[i].v.f32 = (float)x;
   return lean_io_result_mk_ok(lean_box(0));
 }
