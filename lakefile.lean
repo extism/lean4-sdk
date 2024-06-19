@@ -32,7 +32,7 @@ lean_exe test {
 
 target bindings.o pkg : FilePath := do
   let oFile := pkg.buildDir / "c" / "bindings.o"
-  let srcJob ← inputFile <| pkg.dir / "c" / "bindings.c"
+  let srcJob ← inputTextFile <| pkg.dir / "c" / "bindings.c"
   let weakArgs := #["-I", (← getLeanIncludeDir).toString, "-I", extismIncludePath ()]
   buildO oFile srcJob weakArgs #["-fPIC", "--std=c11"] "cc" getLeanTrace
 

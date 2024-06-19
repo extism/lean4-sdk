@@ -42,13 +42,15 @@ namespace proc
 
   --/ Get name of process using /proc/self/status
   def test : IO Unit := do
-    let m := 
-      Manifest.new #[Wasm.file "wasm/extproc.wasm"]
-      |> Manifest.allowPath "/proc" "/proc"
-    let plugin <- Plugin.new m #[] True
-    let res: Json Status <- Plugin.call plugin "status" ""
-    assert! res.val.name == "test"
-    IO.println s!"Name: {res.val.name}"
+    let ex <- System.FilePath.pathExists "/proc"
+    if ex then 
+      let m := 
+        Manifest.new #[Wasm.file "wasm/extproc.wasm"]
+        |> Manifest.allowPath "/proc" "/proc"
+      let plugin <- Plugin.new m #[] True
+      let res: Json Status <- Plugin.call plugin "status" ""
+      assert! res.val.name == "test"
+      IO.println s!"Name: {res.val.name}"
 end proc
 
 structure VowelCount where
