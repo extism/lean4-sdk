@@ -49,8 +49,8 @@ jobs:
 
       - name: Build everything
         run: |
-          LD_LIBRARY_PATH=/usr/local/lib lake build
+          DYLB_LIBRARY_PATH=/usr/local/lib LD_LIBRARY_PATH=/usr/local/lib lake build
 
       - name: Run the test
         run: |
-          LD_LIBRARY_PATH=/usr/local/lib lake exe test
+          DYLB_LIBRARY_PATH=/usr/local/lib LD_LIBRARY_PATH=/usr/local/lib lake exe test
