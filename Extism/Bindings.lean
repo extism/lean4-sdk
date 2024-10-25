@@ -193,8 +193,8 @@ def Extism.Plugin.call [ToBytes a] [FromBytes b]
 def Extism.Plugin.callWithHostContext [ToBytes a] [FromBytes b]
   (plugin: Extism.Plugin)
   (funcName: String)
-  (hostContext: c)
-  (data: a) : IO b
+  (data: a)
+  (hostContext: c) : IO b
 := do
   let data := ToBytes.toBytes data
   let res <- pluginRefCallWithHostContext plugin.inner funcName data hostContext
@@ -217,12 +217,12 @@ def Extism.Plugin.pipe [ToBytes a] [FromBytes b]
 def Extism.Plugin.pipeWithHostContext [ToBytes a] [FromBytes b]
   (plugin: Plugin)
   (names: List String)
-  (hostContext: c)
-  (data: a) : IO b
+  (data: a)
+  (hostContext: c) : IO b
 := do
   let data := ToBytes.toBytes data
   let res <- List.foldlM (fun acc x =>
-    Plugin.callWithHostContext plugin x hostContext acc) data names
+    Plugin.callWithHostContext plugin x acc hostContext) data names
   FromBytes.fromBytes? res
   |> IO.ofExcept
 

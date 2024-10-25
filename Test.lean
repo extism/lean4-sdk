@@ -25,7 +25,7 @@ def hostFunction: IO Unit := do
     IO.println "Hello world!!!"
     IO.println "Hello world!!!"
   let plugin <- Plugin.new m #[f] True
-  let res: String <- plugin.pipeWithHostContext ["count_vowels", "count_vowels"] "A host context" "this is a test"
+  let res: String <- plugin.pipeWithHostContext ["count_vowels", "count_vowels"] "this is a test"  "A host context"
   IO.println s!"Result: {res}"
 
 --/ Example loading a plugin from a URL
