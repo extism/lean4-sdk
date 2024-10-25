@@ -1,6 +1,6 @@
 import Lake
 
-open Lake DSL
+open System Lake DSL
 
 unsafe def extismIncludePathImpl (_: Unit) :=
   match unsafeBaseIO (IO.getEnv "EXTISM_INCLUDE_PATH") with
@@ -38,8 +38,8 @@ target bindings.o pkg : FilePath := do
 
 extern_lib libleanextism pkg := do
   let name := nameToStaticLib "leanextism"
-  let ffiO ← fetch <| pkg.target ``bindings.o
+  let ffiO ← bindings.o.fetch
   buildStaticLib (pkg.nativeLibDir / name) #[ffiO]
 
-meta if get_config? env = some "dev" then -- dev is so not everyone has to build it
-require «doc-gen4» from git "https://github.com/leanprover/doc-gen4" @ "main"
+-- meta if get_config? env = some "dev" then -- dev is so not everyone has to build it
+-- require «doc-gen4» from git "https://github.com/leanprover/doc-gen4" @ "main"
