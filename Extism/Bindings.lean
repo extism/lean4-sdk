@@ -28,6 +28,10 @@ private opaque CurrentPointed : NonemptyType
 def Extism.Current : Type := CurrentPointed.type
 instance : Nonempty Extism.Current := CurrentPointed.property
 
+/-- Get current host context -/
+@[extern "l_extism_current_get_host_context"]
+opaque Current.getHostContext : @& Extism.Current -> IO a
+
 /-- Set result to i64 from inside a host function -/
 @[extern "l_extism_current_set_result_i64"]
 opaque Current.setResultI64 : @& Extism.Current -> UInt64 -> UInt64 -> IO Unit
@@ -93,6 +97,10 @@ private opaque newPluginRef : @& ByteArray -> @& Array Function -> Bool -> IO Pl
 
 @[extern "l_extism_plugin_call"]
 private opaque pluginRefCall : @& PluginRef -> @& String -> @& ByteArray -> IO ByteArray
+
+@[extern "l_extism_plugin_call_with_host_context"]
+private opaque pluginRefCallWithHostContext : @& PluginRef -> @& String -> @& ByteArray -> @& A -> IO ByteArray
+
 
 @[extern "l_extism_function_new"]
 private opaque functionNew :
@@ -180,6 +188,18 @@ def Extism.Plugin.call [ToBytes a] [FromBytes b]
   let res <- pluginRefCall plugin.inner funcName data
   IO.ofExcept (FromBytes.fromBytes? res)
 
+  
+/-- Call a plugin function with host context, performing conversion of input and output -/
+def Extism.Plugin.callWithHostContext [ToBytes a] [FromBytes b]
+  (plugin: Extism.Plugin)
+  (funcName: String)
+  (hostContext: c)
+  (data: a) : IO b
+:= do
+  let data := ToBytes.toBytes data
+  let res <- pluginRefCallWithHostContext plugin.inner funcName data hostContext
+  IO.ofExcept (FromBytes.fromBytes? res)
+
 /-- Call multiple plugins, piping the output from the last into the next -/
 def Extism.Plugin.pipe [ToBytes a] [FromBytes b]
   (plugin: Plugin)
@@ -189,6 +209,20 @@ def Extism.Plugin.pipe [ToBytes a] [FromBytes b]
   let data := ToBytes.toBytes data
   let res <- List.foldlM (fun acc x =>
     Plugin.call plugin x acc) data names
+  FromBytes.fromBytes? res
+  |> IO.ofExcept
+
+
+/-- Call multiple plugins, piping the output from the last into the next -/
+def Extism.Plugin.pipeWithHostContext [ToBytes a] [FromBytes b]
+  (plugin: Plugin)
+  (names: List String)
+  (hostContext: c)
+  (data: a) : IO b
+:= do
+  let data := ToBytes.toBytes data
+  let res <- List.foldlM (fun acc x =>
+    Plugin.callWithHostContext plugin x hostContext acc) data names
   FromBytes.fromBytes? res
   |> IO.ofExcept
 

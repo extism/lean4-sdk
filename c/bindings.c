@@ -141,6 +141,31 @@ lean_obj_res l_extism_plugin_call(b_lean_obj_arg pluginArg,
   return lean_io_result_mk_ok(x);
 }
 
+lean_obj_res l_extism_plugin_call_with_host_context(b_lean_obj_arg pluginArg,
+                                                    b_lean_obj_arg funcName,
+                                                    b_lean_obj_arg input,
+                                                    b_lean_obj_arg context) {
+  ExtismPlugin *plugin = plugin_unbox(pluginArg);
+  const char *name = lean_string_cstr(funcName);
+  size_t dataLen = lean_sarray_size(input);
+  void *dataBytes = lean_sarray_cptr(input);
+  int32_t rc = extism_plugin_call_with_host_context(plugin, name, dataBytes,
+                                                    dataLen, context);
+  if (rc != 0) {
+    const char *err = extism_plugin_error(plugin);
+    return lean_io_result_mk_error(lean_mk_io_user_error(lean_mk_string(
+        err == NULL ? "Unknown error occured in call to Extism plugin" : err)));
+  }
+
+  size_t length = extism_plugin_output_length(plugin);
+  const uint8_t *output = extism_plugin_output_data(plugin);
+  lean_obj_res x = lean_mk_empty_byte_array(lean_box(length));
+  void *dest = lean_sarray_cptr(x);
+  memcpy(dest, output, length);
+  lean_sarray_set_size(x, length);
+  return lean_io_result_mk_ok(x);
+}
+
 static void generic_function_callback(ExtismCurrentPlugin *plugin,
                                       const ExtismVal *params, uint64_t nparams,
                                       ExtismVal *results, uint64_t nresults,
@@ -183,6 +208,19 @@ lean_obj_res l_extism_function_new(b_lean_obj_arg funcNamespace,
   }
   extism_function_set_namespace(func, ns);
   return lean_io_result_mk_ok(function_box(func));
+}
+
+lean_obj_res l_extism_current_get_host_context(b_lean_obj_arg current,
+                                               uint64_t i) {
+  Current *c = current_plugin_unbox(current);
+  void *ptr = extism_current_plugin_host_context(c->plugin);
+  if (ptr == NULL) {
+    puts("XXX");
+    return lean_io_result_mk_error(
+        lean_mk_io_user_error(lean_mk_string("No host context configured")));
+  }
+  lean_inc(ptr);
+  return lean_io_result_mk_ok(ptr);
 }
 
 lean_obj_res l_extism_current_get_param_i64(b_lean_obj_arg current,

@@ -16,6 +16,8 @@ def hostFunction: IO Unit := do
   let f <- Function.new "hello_world" #[ValType.i64] #[ValType.i64] $ fun curr => do
     let s: String <- Current.param curr 0
     IO.println s!"Input: {s}"
+    let ctx: String <- Current.getHostContext curr
+    IO.println s!"Host context: {ctx}"
     Current.result curr 0 s
     IO.println "Hello world!!!"
     IO.println "Hello world!!!"
@@ -23,7 +25,7 @@ def hostFunction: IO Unit := do
     IO.println "Hello world!!!"
     IO.println "Hello world!!!"
   let plugin <- Plugin.new m #[f] True
-  let res: String <- plugin.pipe ["count_vowels", "count_vowels"] "this is a test"
+  let res: String <- plugin.pipeWithHostContext ["count_vowels", "count_vowels"] "A host context" "this is a test"
   IO.println s!"Result: {res}"
 
 --/ Example loading a plugin from a URL
