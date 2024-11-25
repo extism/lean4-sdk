@@ -65,9 +65,19 @@ def countVowels (s: String) : IO Int := do
   let res: Json VowelCount <- plugin.call "count_vowels" s
   return res.val.count
 
+  
+def countVowelsCompiled (s: String) : IO Int := do
+  let m := Manifest.new #[Wasm.file "wasm/code.wasm"]
+  let plugin <- CompiledPlugin.new m #[] True
+  let plugin <- Plugin.fromCompiled plugin
+  let res: Json VowelCount <- plugin.call "count_vowels" s
+  return res.val.count
+
 def main : IO Unit := do
   fromUrl
   hostFunction
   proc.test
   let testing <- countVowels "testing"
+  let testing1 <- countVowelsCompiled "testing"
   assert! testing = countVowels' "testing"
+  assert! testing = testing1
