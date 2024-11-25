@@ -12,6 +12,6 @@ runs:
     - uses: ./.extism-cli/.github/actions/extism-cli
     - name: Install
       shell: bash
-      run: sudo extism lib install --version git
+      run: sudo extism lib install --version git --github-token ${{ github.token }}
       env:
         GITHUB_TOKEN: ${{ github.token }}
