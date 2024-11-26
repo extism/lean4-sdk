@@ -4,6 +4,7 @@
 #include <string.h>
 
 static lean_external_class *g_plugin_class = NULL;
+static lean_external_class *g_compiled_plugin_class = NULL;
 static lean_external_class *g_current_plugin_class = NULL;
 static lean_external_class *g_function_class = NULL;
 
@@ -20,6 +21,22 @@ ExtismPlugin *plugin_unbox(lean_object *o) {
 static void plugin_finalizer(void *ptr) { extism_plugin_free(ptr); }
 
 inline static void plugin_foreach(void *mod, b_lean_obj_arg fn) {
+  // used for `for in`
+}
+
+lean_object *compiled_plugin_box(ExtismCompiledPlugin *o) {
+  return lean_alloc_external(g_compiled_plugin_class, o);
+}
+
+ExtismCompiledPlugin *compiled_plugin_unbox(lean_object *o) {
+  return (ExtismCompiledPlugin *)(lean_get_external_data(o));
+}
+
+static void compiled_plugin_finalizer(void *ptr) {
+  extism_compiled_plugin_free(ptr);
+}
+
+inline static void compiled_plugin_foreach(void *mod, b_lean_obj_arg fn) {
   // used for `for in`
 }
 
@@ -81,6 +98,8 @@ lean_obj_res l_extism_initialize() {
       current_plugin_finalizer, current_plugin_foreach);
   g_function_class =
       lean_register_external_class(function_finalizer, function_foreach);
+  g_compiled_plugin_class = lean_register_external_class(
+      compiled_plugin_finalizer, compiled_plugin_foreach);
   return lean_io_result_mk_ok(lean_box(0));
 }
 
@@ -88,6 +107,53 @@ lean_obj_res l_extism_initialize() {
 
 lean_obj_res l_extism_version() {
   return lean_io_result_mk_ok(lean_mk_string(extism_version()));
+}
+
+lean_obj_res l_extism_compiled_plugin_new(b_lean_obj_arg data,
+                                          lean_obj_arg functions,
+                                          uint8_t wasi) {
+
+  size_t dataLen = lean_sarray_size(data);
+  void *dataBytes = lean_sarray_cptr(data);
+
+  size_t nFunctions = lean_array_size(functions);
+  const ExtismFunction *functionsPtr[nFunctions];
+
+  for (size_t i = 0; i < nFunctions; i++) {
+    functionsPtr[i] = function_unbox(lean_array_uget(functions, i));
+  }
+
+  char *err = NULL;
+  ExtismCompiledPlugin *plugin = extism_compiled_plugin_new(
+      dataBytes, dataLen, functionsPtr, nFunctions, wasi == 1, &err);
+  if (plugin == NULL) {
+    const char *err_s =
+        err == NULL ? "Unknown error occured when creating Extism plugin" : err;
+    lean_obj_res e = lean_mk_io_user_error(lean_mk_string(err_s));
+    if (err != NULL) {
+      extism_plugin_new_error_free(err);
+    }
+    return lean_io_result_mk_error(e);
+  }
+
+  return lean_io_result_mk_ok(compiled_plugin_box(plugin));
+}
+
+lean_obj_res l_extism_plugin_new_from_compiled(b_lean_obj_arg compiled) {
+  ExtismCompiledPlugin *p = compiled_plugin_unbox(compiled);
+  char *err = NULL;
+  ExtismPlugin *plugin = extism_plugin_new_from_compiled(p, &err);
+  if (plugin == NULL) {
+    const char *err_s =
+        err == NULL ? "Unknown error occured when creating Extism plugin" : err;
+    lean_obj_res e = lean_mk_io_user_error(lean_mk_string(err_s));
+    if (err != NULL) {
+      extism_plugin_new_error_free(err);
+    }
+    return lean_io_result_mk_error(e);
+  }
+
+  return lean_io_result_mk_ok(plugin_box(plugin));
 }
 
 lean_obj_res l_extism_plugin_new(b_lean_obj_arg data, lean_obj_arg functions,

@@ -28,6 +28,11 @@ private opaque CurrentPointed : NonemptyType
 def Extism.Current : Type := CurrentPointed.type
 instance : Nonempty Extism.Current := CurrentPointed.property
 
+private opaque CompiledPointed : NonemptyType
+/-- Pre-compiled plugins -/
+def Extism.CompiledPluginRef : Type := CompiledPointed.type
+instance : Nonempty Extism.CompiledPluginRef := CompiledPointed.property
+
 /-- Get current host context -/
 @[extern "l_extism_current_get_host_context"]
 opaque Current.getHostContext : @& Extism.Current -> IO a
@@ -95,6 +100,12 @@ def Current.param [FromBytes a] (current: Extism.Current) (index: USize) : IO a 
 @[extern "l_extism_plugin_new"]
 private opaque newPluginRef : @& ByteArray -> @& Array Function -> Bool -> IO PluginRef
 
+@[extern "l_extism_compiled_plugin_new"]
+private opaque newCompiledPluginRef : @& ByteArray -> @& Array Function -> Bool -> IO CompiledPluginRef
+
+@[extern "l_extism_plugin_new_from_compiled"]
+private opaque newPluginRefFromCompiled : @& CompiledPluginRef -> IO PluginRef
+
 @[extern "l_extism_plugin_call"]
 private opaque pluginRefCall : @& PluginRef -> @& String -> @& ByteArray -> IO ByteArray
 
@@ -159,6 +170,11 @@ structure Extism.Plugin where
   inner: PluginRef
   functions: Array Function
 
+/-- CompiledPlugin type -/
+structure Extism.CompiledPlugin where
+  inner: CompiledPluginRef
+  functions: Array Function
+
 /-- Create a new plugin from a `PluginInput` -/
 def Extism.Plugin.new [PluginInput a]
   (data: a)
@@ -167,7 +183,19 @@ def Extism.Plugin.new [PluginInput a]
 := do
   let input := PluginInput.toPluginInput data
   let x <- newPluginRef input functions wasi
-  return (Extism.Plugin.mk x #[])
+  return (Extism.Plugin.mk x functions)
+
+  
+/-- Create a new compile plugin from a `PluginInput` -/
+def Extism.CompiledPlugin.new [PluginInput a]
+  (data: a)
+  (functions: Array Function)
+  (wasi : Bool) : IO Extism.CompiledPlugin
+:= do
+  let input := PluginInput.toPluginInput data
+  let x <- newCompiledPluginRef input functions wasi
+  return (Extism.CompiledPlugin.mk x functions)
+
 
 /-- Create a new plugin from a file -/
 def Extism.Plugin.fromFile
@@ -176,7 +204,15 @@ def Extism.Plugin.fromFile
   (wasi : Bool) : IO Extism.Plugin
 := do
   let x <- newPluginFromFile path functions wasi
-  return (Extism.Plugin.mk x #[])
+  return (Extism.Plugin.mk x functions)
+
+  
+/-- Create a new plugin from a CompiledFunction -/
+def Extism.Plugin.fromCompiled
+  (c: CompiledPlugin)
+:= do
+  let x <- newPluginRefFromCompiled c.inner
+  return (Extism.Plugin.mk x c.functions)
 
 /-- Call a plugin function, performing conversion of input and output -/
 def Extism.Plugin.call [ToBytes a] [FromBytes b]
